@@ -1,0 +1,29 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Tranquilidad',
+  heading: 'Nuestras garantías',
+  lead: 'Respaldamos cada trabajo: si algo de lo que hicimos falla, lo corregimos sin costo.',
+  crumbs: [{ label: 'Garantías' }]
+}) %>
+
+<section class="section">
+  <div class="container-page">
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-4">
+      <% guarantees.forEach((item) => { %>
+        <article class="card">
+          <span class="icon-badge"><%- icon(item.icon) %></span>
+          <h2 class="mb-2 text-lg"><%= item.title %></h2>
+          <p class="text-sm text-muted"><%= item.description %></p>
+        </article>
+      <% }) %>
+    </div>
+
+    <div class="mt-12 max-w-3xl">
+      <h2 class="mb-5 text-2xl">Términos y condiciones</h2>
+      <ul class="check-list">
+        <% terms.forEach((term) => { %><li><%- icon('check', 'size-4') %><%= term %></li><% }) %>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/cta', { heading: '¿Tienes un reclamo de garantía?', text: 'Contáctanos con tu comprobante de servicio y te atendemos de inmediato.' }) %>

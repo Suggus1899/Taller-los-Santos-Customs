@@ -1,0 +1,18 @@
+<%# Cabecera de páginas interiores. Parámetros: heading, lead?, eyebrow?, crumbs? [{ href?, label }] %>
+<section class="border-b border-line bg-[radial-gradient(60%_120%_at_0%_0%,--alpha(var(--color-brand)/16%),transparent_70%)] pt-12 pb-10">
+  <div class="container-page">
+    <% if (locals.crumbs) { %>
+      <nav aria-label="Ruta de navegación">
+        <ol class="mb-4 flex list-none flex-wrap gap-2 p-0 text-xs text-subtle">
+          <li><a class="text-muted no-underline hover:text-fg" href="/">Inicio</a></li>
+          <% crumbs.forEach((crumb) => { %>
+            <li class="before:mr-2 before:content-['/']"><% if (crumb.href) { %><a class="text-muted no-underline hover:text-fg" href="<%= crumb.href %>"><%= crumb.label %></a><% } else { %><span aria-current="page"><%= crumb.label %></span><% } %></li>
+          <% }) %>
+        </ol>
+      </nav>
+    <% } %>
+    <% if (locals.eyebrow) { %><span class="eyebrow"><%= eyebrow %></span><% } %>
+    <h1 class="mb-3 text-4xl sm:text-5xl"><%= heading %></h1>
+    <% if (locals.lead) { %><p class="lead max-w-2xl"><%= lead %></p><% } %>
+  </div>
+</section>

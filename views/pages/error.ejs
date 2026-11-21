@@ -1,0 +1,14 @@
+<section class="section">
+  <div class="container-page max-w-2xl text-center">
+    <p class="font-display text-7xl leading-none font-extrabold text-accent" aria-hidden="true"><%= locals.status || '' %></p>
+    <h1 class="mt-4 mb-3 text-3xl sm:text-4xl"><%= heading %></h1>
+    <p class="lead mb-8"><%= message %></p>
+    <div class="flex flex-wrap justify-center gap-3">
+      <a class="btn btn-primary" href="/">Ir al inicio</a>
+      <a class="btn btn-secondary" href="/contacto">Contactar</a>
+    </div>
+    <% if (locals.detail) { %>
+      <pre class="mt-10 max-h-80 overflow-auto rounded-lg bg-surface p-4 text-left text-xs text-muted"><%= detail %></pre>
+    <% } %>
+  </div>
+</section>

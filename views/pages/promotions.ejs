@@ -1,0 +1,28 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Promociones',
+  heading: 'Ofertas vigentes',
+  lead: 'Aprovecha nuestras promociones en mantenimiento, alineación y diagnóstico.',
+  crumbs: [{ label: 'Promociones' }]
+}) %>
+
+<section class="section">
+  <div class="container-page grid gap-5 md:grid-cols-2">
+    <% promotions.forEach((promo) => { %>
+      <article class="card<%= promo.featured ? ' border-accent/40 bg-[linear-gradient(180deg,--alpha(var(--color-brand)/14%),var(--color-surface)_55%)] md:col-span-2 md:flex-row md:items-center md:gap-10' : '' %>">
+        <div class="flex-1">
+          <span class="badge mb-3"><%- icon('tag', 'size-3.5') %><%= promo.featured ? 'Destacada' : 'Promoción' %></span>
+          <h2 class="mb-2 text-2xl"><%= promo.title %></h2>
+          <p class="text-muted"><%= promo.description %></p>
+        </div>
+        <div class="mt-5 flex flex-wrap items-center gap-5 md:mt-0">
+          <p class="flex items-baseline gap-2">
+            <span class="font-display text-4xl font-bold"><%= promo.price %></span>
+            <% if (promo.previousPrice) { %><span class="text-subtle line-through"><span class="sr-only">Antes: </span><%= promo.previousPrice %></span><% } %>
+          </p>
+          <a class="btn <%= promo.featured ? 'btn-primary' : 'btn-secondary' %>" href="<%= promo.cta.href %>"><%= promo.cta.label %></a>
+        </div>
+      </article>
+    <% }) %>
+  </div>
+  <p class="container-page mt-6 text-xs text-subtle">Promociones sujetas a disponibilidad. No acumulables con otras ofertas.</p>
+</section>

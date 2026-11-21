@@ -1,0 +1,15 @@
+<%# Bloque de llamada a la acción. Parámetros: heading?, text? %>
+<section class="section pt-0">
+  <div class="container-page">
+    <div class="grid items-center gap-6 rounded-2xl border border-accent/35 bg-surface bg-[radial-gradient(80%_140%_at_100%_0%,--alpha(var(--color-brand)/35%),transparent_60%)] px-6 py-10 md:grid-cols-[1fr_auto] md:px-12">
+      <div>
+        <h2 class="mb-2 text-3xl"><%= locals.heading || '¿Listo para que revisemos tu vehículo?' %></h2>
+        <p class="text-muted"><%= locals.text || 'Agenda tu cita en línea o solicita una cotización sin compromiso.' %></p>
+      </div>
+      <div class="flex flex-wrap gap-3">
+        <a class="btn btn-primary btn-lg" href="/cita"><%- icon('calendar') %>Agendar cita</a>
+        <a class="btn btn-secondary btn-lg" href="/cotizar">Cotizar</a>
+      </div>
+    </div>
+  </div>
+</section>

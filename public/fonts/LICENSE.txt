@@ -1,0 +1,3 @@
+Inter (https://rsms.me/inter) y Outfit (https://github.com/Outfitio/Outfit-Fonts)
+se distribuyen bajo la SIL Open Font License 1.1: https://openfontlicense.org
+Archivos obtenidos de los paquetes @fontsource-variable/inter y @fontsource-variable/outfit.

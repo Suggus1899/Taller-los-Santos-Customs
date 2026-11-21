@@ -1,0 +1,117 @@
+<section class="relative isolate overflow-hidden py-20 sm:py-28 lg:py-36">
+  <div class="absolute inset-0 -z-20">
+    <%- include('../partials/image', { key: 'hero', sizes: '100vw', cls: 'size-full object-cover opacity-45', eager: true }) %>
+  </div>
+  <div class="absolute inset-0 -z-10 bg-[linear-gradient(90deg,var(--color-ink)_0%,--alpha(var(--color-ink)/85%)_45%,--alpha(var(--color-ink)/35%)_100%),linear-gradient(0deg,var(--color-ink)_0%,transparent_30%)]"></div>
+
+  <div class="container-page">
+    <div class="max-w-2xl">
+      <span class="eyebrow">Taller mecánico en <%= site.address.locality %>, <%= site.address.region %></span>
+      <h1 class="mb-5 text-4xl leading-[1.05] sm:text-6xl">Mecánica de precisión para tu vehículo</h1>
+      <p class="lead mb-8 text-[#c9c9d6]">Mantenimiento preventivo, reparaciones y diagnóstico computarizado con técnicos experimentados y presupuestos claros desde el primer día.</p>
+      <div class="flex flex-wrap gap-3">
+        <a class="btn btn-primary btn-lg" href="/cita"><%- icon('calendar') %>Agendar cita</a>
+        <a class="btn btn-secondary btn-lg" href="/servicios">Ver servicios</a>
+      </div>
+      <ul class="mt-12 flex list-none flex-wrap gap-x-8 gap-y-3 p-0 text-sm text-muted">
+        <li class="flex items-center gap-2"><span class="text-accent"><%- icon('shield') %></span>Garantía de 6 meses</li>
+        <li class="flex items-center gap-2"><span class="text-accent"><%- icon('clock') %></span><%= site.hours.display %></li>
+        <li class="flex items-center gap-2"><span class="text-accent"><%- icon('check') %></span>Desde <%= site.foundedYear %></li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<section class="border-y border-line bg-surface py-10" aria-label="El taller en cifras">
+  <ul class="container-page grid list-none grid-cols-2 gap-6 p-0 lg:grid-cols-4">
+    <li><span class="block font-display text-3xl font-bold"><%= yearsOfExperience %>+</span><span class="text-sm text-muted">años de experiencia</span></li>
+    <li><span class="block font-display text-3xl font-bold">10.000+</span><span class="text-sm text-muted">clientes atendidos</span></li>
+    <li><span class="block font-display text-3xl font-bold"><%= services.length %></span><span class="text-sm text-muted">áreas de servicio</span></li>
+    <li><span class="block font-display text-3xl font-bold">6 meses</span><span class="text-sm text-muted">de garantía en mano de obra</span></li>
+  </ul>
+</section>
+
+<section class="section">
+  <div class="container-page">
+    <div class="mb-12 flex flex-wrap items-end justify-between gap-6">
+      <div class="max-w-2xl">
+        <span class="eyebrow">Servicios</span>
+        <h2 class="mb-3 text-3xl sm:text-4xl">Todo lo que tu vehículo necesita, en un solo lugar</h2>
+        <p class="lead">Del cambio de aceite a la reparación de motor, con precios publicados y sin sorpresas.</p>
+      </div>
+      <a class="btn btn-secondary" href="/servicios">Ver todos<%- icon('arrow-right') %></a>
+    </div>
+    <div class="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+      <% services.forEach((service) => { %>
+        <a class="card card-link" href="/servicios/<%= service.slug %>">
+          <span class="icon-badge"><%- icon(service.icon, 'size-5.5') %></span>
+          <h3 class="mb-2 text-lg"><%= service.name %></h3>
+          <p class="text-sm text-muted"><%= service.summary %></p>
+          <span class="mt-auto inline-flex items-center gap-1 pt-4 text-sm font-semibold text-accent">Ver detalles<%- icon('arrow-right', 'size-4') %></span>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<section class="section border-y border-line bg-surface">
+  <div class="container-page">
+    <div class="mx-auto mb-12 max-w-2xl text-center">
+      <span class="eyebrow">Cómo trabajamos</span>
+      <h2 class="mb-3 text-3xl sm:text-4xl">Transparencia en cada paso</h2>
+      <p class="lead">Sabrás qué tiene tu vehículo, cuánto cuesta y cuándo estará listo antes de empezar.</p>
+    </div>
+    <ol class="grid list-none gap-5 p-0 [counter-reset:step] sm:grid-cols-2 lg:grid-cols-4">
+      <% processSteps.forEach((step) => { %>
+        <li class="card bg-ink [counter-increment:step] before:mb-3 before:block before:font-display before:text-xl before:font-bold before:text-accent before:content-[counter(step,decimal-leading-zero)]">
+          <h3 class="mb-2 text-lg"><%= step.title %></h3>
+          <p class="text-sm text-muted"><%= step.description %></p>
+        </li>
+      <% }) %>
+    </ol>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container-page grid items-center gap-12 lg:grid-cols-2">
+    <div class="overflow-hidden rounded-2xl border border-line">
+      <%- include('../partials/image', { key: 'workshop', sizes: '(min-width: 1024px) 560px, 100vw', cls: 'aspect-[4/3] w-full object-cover' }) %>
+    </div>
+    <div>
+      <span class="eyebrow">Por qué elegirnos</span>
+      <h2 class="mb-4 text-3xl sm:text-4xl">Un taller familiar con estándares profesionales</h2>
+      <p class="lead mb-8">Desde <%= site.foundedYear %> atendemos a familias y empresas de Aragua con la misma regla: explicar antes de reparar.</p>
+      <ul class="grid list-none gap-5 p-0">
+        <% values.forEach((value) => { %>
+          <li class="flex gap-4">
+            <span class="icon-badge mb-0"><%- icon(value.icon) %></span>
+            <div><h3 class="mb-1 font-sans text-base font-semibold"><%= value.title %></h3><p class="text-sm text-muted"><%= value.description %></p></div>
+          </li>
+        <% }) %>
+      </ul>
+      <a class="btn btn-secondary mt-8" href="/nosotros">Conoce nuestra historia<%- icon('arrow-right') %></a>
+    </div>
+  </div>
+</section>
+
+<section class="border-y border-line py-10" aria-labelledby="marcas">
+  <div class="container-page">
+    <h2 id="marcas" class="mb-6 text-center font-sans text-sm font-medium text-subtle">Trabajamos con marcas de confianza</h2>
+    <ul class="flex list-none flex-wrap justify-center gap-x-12 gap-y-4 p-0 font-display text-lg font-semibold tracking-wider text-subtle uppercase">
+      <% brands.forEach((brand) => { %><li><%= brand %></li><% }) %>
+    </ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container-page grid gap-12 lg:grid-cols-[2fr_3fr]">
+    <div>
+      <span class="eyebrow">Preguntas frecuentes</span>
+      <h2 class="mb-4 text-3xl sm:text-4xl">Resolvemos tus dudas</h2>
+      <p class="lead">¿No encuentras la respuesta? <a href="/contacto">Escríbenos</a> y te respondemos en horario laboral.</p>
+    </div>
+    <%- include('../partials/faq', { items: faqs }) %>
+  </div>
+</section>
+
+<%- include('../partials/cta') %>

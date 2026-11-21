@@ -1,0 +1,9 @@
+<%# Preguntas frecuentes con <details>. Parámetros: items [{ question, answer }] %>
+<div class="faq grid gap-3">
+  <% items.forEach((item) => { %>
+    <details class="rounded-xl border border-line bg-surface">
+      <summary><%= item.question %><%- icon('plus') %></summary>
+      <div class="px-5 pb-4 text-muted"><%= item.answer %></div>
+    </details>
+  <% }) %>
+</div>

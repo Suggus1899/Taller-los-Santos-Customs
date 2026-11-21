@@ -1,36 +1,26 @@
-<!-- Header with Navigation -->
-<header role="banner">
-    <div class="container">
-        <p class="logo">Taller Los Santos</p>
-        <nav aria-label="Main Navigation">
-            <button class="nav-toggle" aria-label="Abrir menú" onclick="toggleMenu()">☰</button>
-            <div class="nav-menu">
-                <a href="/">Inicio</a>
-                <a href="/about">Nosotros</a>
-                <div class="dropdown">
-                    <button class="dropbtn" aria-label="Servicios">Servicios ⬇</button>
-                    <div class="dropdown-content">
-                        <a href="/maintenance">Mantenimiento</a>
-                        <a href="/repairs">Reparaciones</a>
-                        <a href="/diagnosis">Diagnóstico</a>
-                        <a href="/ac-service">Aire Acondicionado</a>
-                        <a href="/brakes">Frenos</a>
-                        <a href="/tires">Neumáticos</a>
-                    </div>
-                </div>
-                <div class="dropdown">
-                    <button class="dropbtn" aria-label="Extras">Más ⬇</button>
-                    <div class="dropdown-content">
-                        <a href="/gallery">Galería</a>
-                        <a href="/success-stories">Casos de Éxito</a>
-                        <a href="/reviews">Testimonios</a>
-                        <a href="/shop">Tienda</a>
-                    </div>
-                </div>
-                <a href="/blog">Blog</a>
-                <a href="/promotions" style="color: var(--color-accent);">Promos</a>
-                <a href="/quote" class="btn-primary" style="padding: 8px 16px; font-size: 0.9rem;">Cotizar</a>
-            </div>
-        </nav>
+<header class="sticky top-0 z-50 border-b border-line bg-ink/85 backdrop-blur-md">
+  <div class="container-page flex min-h-17 flex-wrap items-center gap-x-5 lg:flex-nowrap">
+    <a class="flex items-center gap-2 font-display text-lg font-bold whitespace-nowrap text-fg no-underline hover:text-fg" href="/" aria-label="<%= site.name %>, ir al inicio">
+      <span class="grid size-9 place-items-center rounded-lg bg-brand text-white"><%- icon('wrench') %></span>
+      <span><%= site.name %></span>
+    </a>
+
+    <div class="order-2 ml-auto flex items-center gap-2 lg:order-3 lg:ml-0">
+      <a class="btn btn-secondary max-lg:hidden" href="/cotizar">Cotizar</a>
+      <a class="btn btn-primary" href="/cita"><span class="max-sm:hidden">Agendar cita</span><span class="sm:hidden">Cita</span></a>
+      <button class="btn btn-ghost hidden px-3 [.js_&]:max-lg:inline-flex" type="button" aria-expanded="false" aria-controls="menu-principal" data-nav-toggle>
+        <%- icon('menu') %><span class="sr-only">Abrir menú</span>
+      </button>
     </div>
+
+    <nav class="site-nav order-3 basis-full pb-3 lg:order-2 lg:ml-auto lg:basis-auto lg:pb-0" id="menu-principal" aria-label="Principal">
+      <ul class="flex list-none flex-col gap-1 p-0 lg:flex-row lg:items-center">
+        <% navigation.forEach((item) => {
+             const active = currentPath === item.href || (item.href !== '/' && currentPath.startsWith(item.href)); %>
+          <li><a class="nav-link max-lg:py-3 max-lg:text-base" href="<%= item.href %>"<% if (active) { %> aria-current="page"<% } %>><%= item.label %></a></li>
+        <% }) %>
+        <li class="lg:hidden"><a class="nav-link py-3 text-base" href="/cotizar">Cotizar</a></li>
+      </ul>
+    </nav>
+  </div>
 </header>

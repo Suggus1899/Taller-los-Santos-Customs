@@ -1,0 +1,12 @@
+<%# Resumen de errores, token CSRF y campo trampa anti-spam: va al inicio de cada formulario público. %>
+<% if (typeof errors !== 'undefined' && Object.keys(errors).length) { %>
+  <div class="alert alert-error" role="alert">
+    <%- icon('alert') %>
+    <p>Revisa los campos marcados: <%= Object.keys(errors).length === 1 ? 'hay 1 error' : 'hay ' + Object.keys(errors).length + ' errores' %>.</p>
+  </div>
+<% } %>
+<input type="hidden" name="_csrf" value="<%= csrfToken %>">
+<div class="hp-field" aria-hidden="true">
+  <label for="website">No rellenes este campo</label>
+  <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+</div>

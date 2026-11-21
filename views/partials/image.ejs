@@ -1,0 +1,3 @@
+<%# Imagen responsive. Parámetros: key, sizes?, cls?, eager? %>
+<% const im = img(key, locals.sizes); %>
+<img src="<%= im.src %>" srcset="<%= im.srcset %>" sizes="<%= im.sizes %>" width="<%= im.width %>" height="<%= im.height %>" alt="<%= im.alt %>" class="<%= locals.cls || '' %>"<% if (locals.eager) { %> fetchpriority="high"<% } else { %> loading="lazy" decoding="async"<% } %>>

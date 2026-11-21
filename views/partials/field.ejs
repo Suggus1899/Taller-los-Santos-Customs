@@ -1,0 +1,31 @@
+<%#
+  Campo de formulario accesible: etiqueta asociada, ayuda y error enlazados con
+  aria-describedby, y aria-invalid cuando hay error.
+  Parámetros: name, label, type?, as? ('input' | 'textarea' | 'select'), options?,
+  required?, autocomplete?, placeholder?, hint?, inputmode?, min?, max?, step?, maxlength?, span2?
+-%>
+<%
+  const id = 'f-' + name;
+  const value = (typeof values !== 'undefined' && values[name]) || '';
+  const error = typeof errors !== 'undefined' ? errors[name] : undefined;
+  const describedBy = [locals.hint ? id + '-hint' : '', error ? id + '-error' : ''].filter(Boolean).join(' ');
+  const kind = locals.as || 'input';
+  const aria = (describedBy ? ' aria-describedby="' + describedBy + '"' : '') + (error ? ' aria-invalid="true"' : '');
+-%>
+<div class="grid content-start gap-2<%= locals.span2 ? ' sm:col-span-2' : '' %>">
+  <label class="label" for="<%= id %>"><%= label %><% if (!locals.required) { %> <span class="font-normal text-subtle">(opcional)</span><% } %></label>
+  <% if (kind === 'textarea') { %>
+    <textarea class="textarea" id="<%= id %>" name="<%= name %>"<% if (locals.required) { %> required<% } %><% if (locals.placeholder) { %> placeholder="<%= placeholder %>"<% } %><% if (locals.maxlength) { %> maxlength="<%= maxlength %>"<% } %><%- aria %>><%= value %></textarea>
+  <% } else if (kind === 'select') { %>
+    <select class="select" id="<%= id %>" name="<%= name %>"<% if (locals.required) { %> required<% } %><%- aria %>>
+      <option value="">Selecciona una opción</option>
+      <% options.forEach((option) => { %>
+        <option value="<%= option.value %>"<% if (option.value === value) { %> selected<% } %>><%= option.label %></option>
+      <% }) %>
+    </select>
+  <% } else { %>
+    <input class="input" id="<%= id %>" name="<%= name %>" type="<%= locals.type || 'text' %>" value="<%= value %>"<% if (locals.required) { %> required<% } %><% if (locals.autocomplete) { %> autocomplete="<%= autocomplete %>"<% } %><% if (locals.placeholder) { %> placeholder="<%= placeholder %>"<% } %><% if (locals.inputmode) { %> inputmode="<%= inputmode %>"<% } %><% if (locals.min) { %> min="<%= min %>"<% } %><% if (locals.max) { %> max="<%= max %>"<% } %><% if (locals.step) { %> step="<%= step %>"<% } %><% if (locals.maxlength) { %> maxlength="<%= maxlength %>"<% } %><%- aria %>>
+  <% } %>
+  <% if (locals.hint) { %><p class="hint" id="<%= id %>-hint"><%= hint %></p><% } %>
+  <% if (error) { %><p class="field-error" id="<%= id %>-error"><%= error %></p><% } %>
+</div>

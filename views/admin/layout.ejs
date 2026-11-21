@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= title %> | Panel <%= site.name %></title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/main.css">
+  <script type="module" src="/js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('../partials/icons') %>
+  <header class="border-b border-line bg-surface">
+    <div class="container-page flex min-h-16 items-center justify-between gap-4">
+      <a class="flex items-center gap-2 font-display text-lg font-bold text-fg no-underline hover:text-fg" href="/admin">
+        <span class="grid size-9 place-items-center rounded-lg bg-brand text-white"><%- icon('wrench') %></span>
+        <span>Panel <span class="max-sm:hidden"><%= site.name %></span></span>
+      </a>
+      <% if (locals.currentUser) { %>
+        <div class="flex items-center gap-3 text-sm text-muted">
+          <span class="max-sm:hidden"><%= currentUser.username %></span>
+          <form method="post" action="/admin/logout">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-ghost btn-sm" type="submit"><%- icon('logout', 'size-4') %>Salir</button>
+          </form>
+        </div>
+      <% } else { %>
+        <a class="text-sm text-muted no-underline hover:text-fg" href="/">Volver al sitio</a>
+      <% } %>
+    </div>
+  </header>
+  <main id="contenido" class="flex-1 pt-8 pb-20 focus:outline-none" tabindex="-1">
+    <%- body %>
+  </main>
+</body>
+</html>

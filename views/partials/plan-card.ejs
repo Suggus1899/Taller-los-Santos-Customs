@@ -1,0 +1,16 @@
+<%# Tarjeta de plan/precio. Parámetros: plan, serviceSlug %>
+<article class="card<%= plan.highlighted ? ' border-accent/40 bg-[linear-gradient(180deg,--alpha(var(--color-brand)/14%),var(--color-surface)_55%)]' : '' %>">
+  <% if (plan.highlighted) { %><span class="badge absolute top-4 right-4">Recomendado</span><% } %>
+  <h3 class="mb-3 text-lg"><%= plan.name %></h3>
+  <p class="mb-5 flex items-baseline gap-2">
+    <span class="font-display text-4xl leading-none font-bold"><%= plan.priceLabel || money(plan.price) %></span>
+    <% if (plan.unit) { %><span class="text-sm text-muted"><%= plan.unit %></span><% } %>
+  </p>
+  <% if (typeof plan.price === 'number' && plan.price > 0 && toVes(plan.price) !== null) { %>
+    <p class="-mt-3 mb-5 text-xs text-subtle">≈ <%= bolivares(toVes(plan.price)) %> a tasa BCV</p>
+  <% } %>
+  <ul class="check-list mb-6">
+    <% plan.features.forEach((feature) => { %><li><%- icon('check', 'size-4') %><%= feature %></li><% }) %>
+  </ul>
+  <a class="btn <%= plan.highlighted ? 'btn-primary' : 'btn-secondary' %> mt-auto" href="/cita?servicio=<%= serviceSlug %>">Agendar</a>
+</article>

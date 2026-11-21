@@ -1,0 +1,102 @@
+<%
+  const statusLabels = {
+    PENDING: 'Pendiente', CONFIRMED: 'Confirmada', COMPLETED: 'Completada', CANCELLED: 'Cancelada', NO_SHOW: 'No asistió',
+    NEW: 'Nuevo', CONTACTED: 'Contactado', ACCEPTED: 'Aceptada', REJECTED: 'Rechazada', ARCHIVED: 'Archivado', READ: 'Leído'
+  };
+  const tabDefs = [
+    { id: 'citas', label: 'Citas', count: counts.pendingAppointments, hint: 'pendientes' },
+    { id: 'cotizaciones', label: 'Cotizaciones', count: counts.newQuotes, hint: 'nuevas' },
+    { id: 'mensajes', label: 'Mensajes', count: counts.newMessages, hint: 'nuevos' }
+  ];
+  const actionPath = { citas: 'citas', cotizaciones: 'cotizaciones', mensajes: 'mensajes' }[tab];
+-%>
+<div class="container-page">
+  <h1 class="mb-6 text-3xl">Panel de gestión</h1>
+
+  <% if (flash) { %>
+    <div class="alert alert-info mb-6" role="status"><%- icon('alert') %><p><%= flash %></p></div>
+  <% } %>
+
+  <ul class="mb-8 grid list-none gap-4 p-0 sm:grid-cols-3">
+    <% tabDefs.forEach((t) => { %>
+      <li class="card p-5">
+        <span class="text-sm text-muted"><%= t.label %> <%= t.hint %></span>
+        <span class="font-display text-3xl font-bold"><%= t.count %></span>
+      </li>
+    <% }) %>
+  </ul>
+
+  <nav class="mb-5 flex gap-1 overflow-x-auto border-b border-line" aria-label="Secciones del panel">
+    <% tabDefs.forEach((t) => { %>
+      <a class="inline-flex items-center gap-2 border-b-2 px-4 py-3 text-sm font-semibold whitespace-nowrap no-underline <%= tab === t.id ? 'border-accent text-fg' : 'border-transparent text-muted hover:text-fg' %>" href="/admin?tab=<%= t.id %>"<% if (tab === t.id) { %> aria-current="page"<% } %>>
+        <%= t.label %><span class="min-w-5.5 rounded-full bg-surface-3 px-1.5 text-center text-xs text-fg"><%= t.count %></span>
+      </a>
+    <% }) %>
+  </nav>
+
+  <form class="mb-5 flex flex-wrap items-end gap-2" method="get" action="/admin">
+    <input type="hidden" name="tab" value="<%= tab %>">
+    <div class="grid gap-1">
+      <label class="label" for="estado">Filtrar por estado</label>
+      <select class="select min-h-9 min-w-44 py-1 text-sm" id="estado" name="estado">
+        <option value="">Todos</option>
+        <% statuses.forEach((s) => { %><option value="<%= s %>"<% if (filter === s) { %> selected<% } %>><%= statusLabels[s] || s %></option><% }) %>
+      </select>
+    </div>
+    <button class="btn btn-secondary btn-sm min-h-9" type="submit">Aplicar</button>
+  </form>
+
+  <% if (!rows.length) { %>
+    <p class="rounded-xl border border-line px-5 py-12 text-center text-muted">No hay registros<%= filter ? ' con ese estado' : '' %>.</p>
+  <% } else { %>
+  <div class="overflow-x-auto rounded-xl border border-line">
+    <table class="table">
+      <thead>
+        <tr>
+          <% if (tab === 'citas') { %><th scope="col">Fecha</th><th scope="col">Cliente</th><th scope="col">Servicio</th><th scope="col">Notas</th>
+          <% } else if (tab === 'cotizaciones') { %><th scope="col">Recibida</th><th scope="col">Cliente</th><th scope="col">Detalle</th><th scope="col">Estimado</th>
+          <% } else { %><th scope="col">Recibido</th><th scope="col">Cliente</th><th scope="col">Mensaje</th><% } %>
+          <th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th>
+        </tr>
+      </thead>
+      <tbody>
+        <% rows.forEach((row) => { %>
+          <tr class="hover:bg-surface">
+            <% if (tab === 'citas') { %>
+              <td class="whitespace-nowrap"><span class="first-letter:uppercase"><%= longDate(row.date) %></span><span class="block text-xs text-subtle"><%= timeLabel(row.timeSlot) %></span></td>
+            <% } else { %>
+              <td class="whitespace-nowrap"><%= dateTime(row.createdAt) %></td>
+            <% } %>
+            <td>
+              <%= row.customer.name %>
+              <a class="block text-xs" href="mailto:<%= row.customer.email %>"><%= row.customer.email %></a>
+              <% if (row.customer.phone) { %><a class="block text-xs" href="tel:<%= row.customer.phone %>"><%= row.customer.phone %></a><% } %>
+            </td>
+            <% if (tab === 'citas') { %>
+              <td><%= serviceName(row.serviceSlug) %><% if (row.vehicle) { %><span class="block text-xs text-subtle"><%= row.vehicle %></span><% } %></td>
+              <td class="max-w-80 whitespace-pre-line text-muted"><%= row.notes || '—' %></td>
+            <% } else if (tab === 'cotizaciones') { %>
+              <td><%= quoteServiceLabel(row.serviceCode) %><span class="block text-xs text-subtle"><%= vehicleTypeLabel(row.vehicleType) %> · <%= quoteExtraLabel(row.extraCode) %></span><% if (row.notes) { %><span class="block text-xs text-subtle"><%= row.notes %></span><% } %></td>
+              <td class="font-semibold whitespace-nowrap"><%= moneyFromCents(row.estimateCents) %></td>
+            <% } else { %>
+              <td class="max-w-96 whitespace-pre-line text-muted"><%= row.message %></td>
+            <% } %>
+            <td><span class="status status-<%= row.status.toLowerCase() %>"><%= statusLabels[row.status] || row.status %></span></td>
+            <td>
+              <form class="flex gap-2" method="post" action="/admin/<%= actionPath %>/<%= row.id %>/estado">
+                <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                <label class="sr-only" for="st-<%= row.id %>">Nuevo estado</label>
+                <select class="select min-h-9 min-w-36 py-1 text-xs" id="st-<%= row.id %>" name="status">
+                  <% statuses.forEach((s) => { %><option value="<%= s %>"<% if (row.status === s) { %> selected<% } %>><%= statusLabels[s] || s %></option><% }) %>
+                </select>
+                <button class="btn btn-secondary btn-sm" type="submit">Guardar</button>
+              </form>
+            </td>
+          </tr>
+        <% }) %>
+      </tbody>
+    </table>
+  </div>
+  <p class="mt-3 text-xs text-subtle">Se muestran los 200 registros más recientes.</p>
+  <% } %>
+</div>

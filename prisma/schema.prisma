@@ -1,0 +1,248 @@
+// Esquema de datos de Taller Los Santos (PostgreSQL).
+// Convenciones: modelos en PascalCase y tablas/columnas en snake_case (@@map / @map),
+// marcas de tiempo con zona horaria (timestamptz) y dinero en centavos (enteros).
+
+generator client {
+  provider            = "prisma-client"
+  output              = "../src/generated/prisma"
+  moduleFormat        = "esm"
+  importFileExtension = "js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ───────────────────────────── Administración ─────────────────────────────
+
+enum UserRole {
+  ADMIN // gestiona todo, incluidos usuarios
+  STAFF // gestiona citas, cotizaciones y mensajes
+
+  @@map("user_role")
+}
+
+model User {
+  id           Int        @id @default(autoincrement())
+  /// Se guarda en minúsculas para que el login no distinga mayúsculas.
+  username     String     @unique @db.VarChar(64)
+  passwordHash String     @map("password_hash")
+  displayName  String?    @map("display_name") @db.VarChar(80)
+  role         UserRole   @default(STAFF)
+  isActive     Boolean    @default(true) @map("is_active")
+  lastLoginAt  DateTime?  @map("last_login_at") @db.Timestamptz(3)
+  createdAt    DateTime   @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime   @updatedAt @map("updated_at") @db.Timestamptz(3)
+  auditLogs    AuditLog[]
+
+  @@map("users")
+}
+
+/// Sesiones de express-session (solo se crean al iniciar sesión en el panel).
+model Session {
+  sid       String   @id @db.VarChar(128)
+  data      Json
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+
+  @@index([expiresAt])
+  @@map("sessions")
+}
+
+enum AuditAction {
+  LOGIN
+  LOGIN_FAILED
+  LOGOUT
+  STATUS_CHANGED
+
+  @@map("audit_action")
+}
+
+enum AuditEntity {
+  USER
+  APPOINTMENT
+  QUOTE_REQUEST
+  CONTACT_MESSAGE
+
+  @@map("audit_entity")
+}
+
+/// Registro inmutable de acciones del panel (quién cambió qué y cuándo).
+model AuditLog {
+  id         BigInt      @id @default(autoincrement())
+  userId     Int?        @map("user_id")
+  user       User?       @relation(fields: [userId], references: [id], onDelete: SetNull)
+  action     AuditAction
+  entityType AuditEntity @map("entity_type")
+  entityId   Int?        @map("entity_id")
+  /// Detalle de la acción, p. ej. { "from": "PENDING", "to": "CONFIRMED" }.
+  metadata   Json?
+  createdAt  DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  @@index([entityType, entityId])
+  @@index([userId, createdAt])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+// ─────────────────────────────── Clientes ────────────────────────────────
+
+/// Persona que contactó al taller. Se identifica por correo (en minúsculas).
+model Customer {
+  id              Int              @id @default(autoincrement())
+  email           String           @unique @db.VarChar(254)
+  name            String           @db.VarChar(80)
+  phone           String?          @db.VarChar(20)
+  createdAt       DateTime         @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt       DateTime         @updatedAt @map("updated_at") @db.Timestamptz(3)
+  vehicles        Vehicle[]
+  appointments    Appointment[]
+  quoteRequests   QuoteRequest[]
+  contactMessages ContactMessage[]
+
+  @@map("customers")
+}
+
+enum VehicleType {
+  SEDAN
+  SUV
+  PICKUP
+  SPORT
+
+  @@map("vehicle_type")
+}
+
+model Vehicle {
+  id           Int           @id @default(autoincrement())
+  customerId   Int           @map("customer_id")
+  customer     Customer      @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  /// Marca, modelo y año tal como los escribió el cliente (p. ej. "Toyota Corolla 2015").
+  description  String        @db.VarChar(80)
+  type         VehicleType?
+  plate        String?       @db.VarChar(12)
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  appointments Appointment[]
+
+  @@unique([customerId, description])
+  @@map("vehicles")
+}
+
+// ──────────────────────────────── Citas ─────────────────────────────────
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+
+  @@map("appointment_status")
+}
+
+model Appointment {
+  id            Int               @id @default(autoincrement())
+  /// Identificador público (no secuencial) que se usa en URLs de confirmación.
+  publicId      String            @unique @default(uuid()) @map("public_id") @db.Uuid
+  customerId    Int               @map("customer_id")
+  customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicleId     Int?              @map("vehicle_id")
+  vehicle       Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
+  /// Slug del catálogo de servicios (src/content/services.ts).
+  serviceSlug   String            @map("service_slug") @db.VarChar(40)
+  /// Día de la cita en hora local del taller (America/Caracas).
+  scheduledDate DateTime          @map("scheduled_date") @db.Date
+  /// Turno "HH:MM" en hora local del taller.
+  timeSlot      String            @map("time_slot") @db.Char(5)
+  status        AppointmentStatus @default(PENDING)
+  notes         String?           @db.VarChar(1000)
+  createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  // Además existe un índice único PARCIAL (ver migración inicial):
+  // uq_appointments_active_slot ON (scheduled_date, time_slot) WHERE status <> 'CANCELLED'
+  @@index([scheduledDate, timeSlot])
+  @@index([status, scheduledDate])
+  @@index([customerId])
+  @@map("appointments")
+}
+
+// ───────────────────────────── Cotizaciones ─────────────────────────────
+
+enum QuoteStatus {
+  NEW
+  CONTACTED
+  ACCEPTED
+  REJECTED
+  ARCHIVED
+
+  @@map("quote_status")
+}
+
+model QuoteRequest {
+  id            Int         @id @default(autoincrement())
+  publicId      String      @unique @default(uuid()) @map("public_id") @db.Uuid
+  customerId    Int         @map("customer_id")
+  customer      Customer    @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  vehicleType   VehicleType @map("vehicle_type")
+  /// Códigos de src/content/quote.ts. Se guarda el precio calculado en ese momento
+  /// para que un cambio de tarifas no altere cotizaciones ya emitidas.
+  serviceCode   String      @map("service_code") @db.VarChar(20)
+  extraCode     String      @map("extra_code") @db.VarChar(20)
+  estimateCents Int         @map("estimate_cents")
+  currency      String      @default("USD") @db.Char(3)
+  notes         String?     @db.VarChar(1000)
+  status        QuoteStatus @default(NEW)
+  createdAt     DateTime    @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime    @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@index([customerId])
+  @@map("quote_requests")
+}
+
+// ─────────────────────────────── Mensajes ────────────────────────────────
+
+enum MessageStatus {
+  NEW
+  READ
+  ARCHIVED
+
+  @@map("message_status")
+}
+
+model ContactMessage {
+  id         Int           @id @default(autoincrement())
+  customerId Int           @map("customer_id")
+  customer   Customer      @relation(fields: [customerId], references: [id], onDelete: Restrict)
+  message    String        @db.VarChar(2000)
+  status     MessageStatus @default(NEW)
+  createdAt  DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt  DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([status, createdAt])
+  @@index([customerId])
+  @@map("contact_messages")
+}
+
+// ─────────────────────────── Tasa del dólar ────────────────────────────
+
+enum RateSource {
+  OFICIAL // Banco Central de Venezuela (BCV)
+  PARALELO
+
+  @@map("rate_source")
+}
+
+/// Historial de tasas USD → VES obtenidas del proveedor externo (DolarApi).
+/// Sirve de respaldo si el proveedor no responde y permite consultar la evolución.
+model ExchangeRate {
+  id          Int        @id @default(autoincrement())
+  source      RateSource
+  /// Bolívares por 1 USD. Decimal para no perder precisión (nunca float con dinero).
+  rate        Decimal    @db.Decimal(18, 4)
+  /// Fecha de publicación según el proveedor.
+  publishedAt DateTime   @map("published_at") @db.Timestamptz(3)
+  fetchedAt   DateTime   @default(now()) @map("fetched_at") @db.Timestamptz(3)
+
+  @@unique([source, publishedAt])
+  @@map("exchange_rates")
+}

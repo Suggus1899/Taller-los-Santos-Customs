@@ -1,0 +1,32 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Contacto',
+  heading: 'Hablemos de tu vehículo',
+  lead: 'Escríbenos y te respondemos en horario laboral. Para emergencias, llámanos o usa WhatsApp.',
+  crumbs: [{ label: 'Contacto' }]
+}) %>
+
+<section class="section">
+  <div class="container-page grid items-start gap-12 lg:grid-cols-[3fr_2fr]">
+    <form class="grid gap-5 rounded-2xl border border-line bg-surface p-6 sm:p-10" method="post" action="/contacto" novalidate>
+      <h2 class="text-2xl">Envíanos un mensaje</h2>
+      <%- include('../partials/form-errors') %>
+      <div class="grid gap-5 sm:grid-cols-2">
+        <%- include('../partials/field', { name: 'name', label: 'Nombre', required: true, autocomplete: 'name', maxlength: 80 }) %>
+        <%- include('../partials/field', { name: 'email', label: 'Correo electrónico', type: 'email', required: true, autocomplete: 'email' }) %>
+        <%- include('../partials/field', { name: 'phone', label: 'Teléfono', type: 'tel', autocomplete: 'tel', placeholder: '+58 412 555 1234', span2: true }) %>
+        <%- include('../partials/field', { name: 'message', label: 'Mensaje', as: 'textarea', required: true, maxlength: 2000, span2: true, placeholder: 'Cuéntanos qué necesita tu vehículo' }) %>
+      </div>
+      <p class="text-xs text-subtle">Usaremos tus datos solo para responder a tu consulta.</p>
+      <button class="btn btn-primary btn-lg justify-self-start" type="submit">Enviar mensaje</button>
+    </form>
+
+    <aside class="grid gap-6">
+      <div class="card">
+        <h2 class="mb-5 text-xl">Datos de contacto</h2>
+        <div class="text-muted"><%- include('../partials/contact-list') %></div>
+        <a class="btn btn-secondary mt-6" href="<%= whatsappUrl() %>" target="_blank" rel="noopener"><%- icon('whatsapp') %>Escribir por WhatsApp<span class="sr-only"> (se abre en una pestaña nueva)</span></a>
+      </div>
+      <iframe class="aspect-[4/3] w-full rounded-xl border-0 bg-surface-2" src="<%= site.address.mapEmbedUrl %>" title="Mapa de ubicación de <%= site.name %>" loading="lazy" referrerpolicy="no-referrer-when-downgrade"></iframe>
+    </aside>
+  </div>
+</section>

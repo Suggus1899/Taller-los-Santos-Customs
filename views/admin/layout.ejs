@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="robots" content="noindex, nofollow">
+  <title><%= title %> | Panel <%= site.name %></title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/js-flag.js"></script>
+  <script type="module" src="/js/main.js"></script>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('../partials/icons') %>
+  <header class="border-b border-line bg-surface">
+    <div class="container-page flex min-h-16 flex-wrap items-center justify-between gap-x-6 gap-y-2 py-2">
+      <a class="flex items-center gap-2 font-display text-lg font-bold text-fg no-underline hover:text-fg" href="/admin">
+        <span class="grid size-9 place-items-center rounded-lg bg-brand text-white"><%- icon('wrench') %></span>
+        <span>Panel <span class="max-sm:hidden"><%= site.name %></span></span>
+      </a>
+      <% if (locals.currentUser) {
+           const sections = [{ id: 'operaciones', href: '/admin', label: 'Operaciones' }];
+           if (currentUser.role === 'ADMIN') {
+             sections.push({ id: 'contenido', href: '/admin/contenido', label: 'Contenido' },
+                           { id: 'usuarios', href: '/admin/usuarios', label: 'Usuarios' },
+                           { id: 'sistema', href: '/admin/sistema', label: 'Sistema' });
+           } %>
+        <nav class="order-3 w-full overflow-x-auto md:order-none md:w-auto" aria-label="Secciones del panel">
+          <ul class="flex list-none gap-1 p-0">
+            <% sections.forEach((s) => { %>
+              <li><a class="nav-link" href="<%= s.href %>"<% if (locals.section === s.id) { %> aria-current="page"<% } %>><%= s.label %></a></li>
+            <% }) %>
+          </ul>
+        </nav>
+        <div class="flex items-center gap-2 text-sm text-muted">
+          <a class="nav-link"<% if (locals.section === 'cuenta') { %> aria-current="page"<% } %> href="/admin/cuenta"><%= currentUser.username %> <span class="text-xs text-subtle">(<%= currentUser.role === 'ADMIN' ? 'admin' : 'personal' %>)</span></a>
+          <form method="post" action="/admin/logout">
+            <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+            <button class="btn btn-ghost btn-sm" type="submit"><%- icon('logout', 'size-4') %>Salir</button>
+          </form>
+        </div>
+      <% } else { %>
+        <a class="text-sm text-muted no-underline hover:text-fg" href="/">Volver al sitio</a>
+      <% } %>
+    </div>
+  </header>
+  <main id="contenido" class="flex-1 pt-8 pb-20 focus:outline-none" tabindex="-1">
+    <% if (locals.flash) { %>
+      <div class="container-page"><div class="alert alert-info mb-6" role="status"><%- icon('alert') %><p><%= flash %></p></div></div>
+    <% } %>
+    <%- body %>
+  </main>
+</body>
+</html>

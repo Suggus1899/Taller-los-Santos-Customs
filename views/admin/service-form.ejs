@@ -1,0 +1,110 @@
+<%
+  const plans = [...service.plans, ...Array(blankRows.plans).fill({ name: '', price: null, features: [] })];
+  const infos = [...service.info, ...Array(blankRows.info).fill({ title: '' })];
+  const faqs = [...service.faqs, ...Array(blankRows.faqs).fill({ question: '', answer: '' })];
+  const action = isNew ? '/admin/contenido/servicios/nuevo' : '/admin/contenido/servicios/' + service.slug;
+  const iconLabels = { oil: 'Aceite', wrench: 'Llave', gauge: 'Medidor', snowflake: 'Copo de nieve', disc: 'Disco', tire: 'Neumático', shield: 'Escudo' };
+-%>
+<div class="container-page max-w-4xl">
+  <p class="mb-2 text-sm"><a href="/admin/contenido">← Contenido</a></p>
+  <h1 class="mb-6 text-3xl"><%= isNew ? 'Nuevo servicio' : service.name %></h1>
+
+  <% if (errors.length) { %>
+    <div class="alert alert-error mb-6" role="alert">
+      <%- icon('alert') %>
+      <div><p class="font-semibold">Revisa estos datos:</p><ul class="mt-1 list-disc pl-5"><% errors.forEach((e) => { %><li><%= e %></li><% }) %></ul></div>
+    </div>
+  <% } %>
+
+  <form class="grid gap-8" method="post" action="<%= action %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+
+    <fieldset class="card grid gap-5 sm:grid-cols-2">
+      <legend class="sr-only">Datos generales</legend>
+      <h2 class="text-xl sm:col-span-2">Datos generales</h2>
+      <div class="grid gap-2">
+        <label class="label" for="name">Nombre</label>
+        <input class="input" id="name" name="name" required maxlength="80" value="<%= service.name %>">
+      </div>
+      <div class="grid gap-2">
+        <label class="label" for="slug">URL</label>
+        <% if (isNew) { %>
+          <input class="input" id="slug" name="slug" required pattern="[a-z0-9]+(-[a-z0-9]+)*" maxlength="60" value="<%= service.slug %>" aria-describedby="slug-hint">
+          <p class="hint" id="slug-hint">/servicios/<strong>esta-parte</strong>. No se puede cambiar después.</p>
+        <% } else { %>
+          <input class="input opacity-60" id="slug" value="/servicios/<%= service.slug %>" disabled>
+        <% } %>
+      </div>
+      <div class="grid gap-2">
+        <label class="label" for="icon">Icono</label>
+        <select class="select" id="icon" name="icon">
+          <% icons.forEach((i) => { %><option value="<%= i %>"<% if (service.icon === i) { %> selected<% } %>><%= iconLabels[i] || i %></option><% }) %>
+        </select>
+      </div>
+      <div class="grid gap-2">
+        <label class="label" for="image">Imagen <span class="font-normal text-subtle">(opcional)</span></label>
+        <select class="select" id="image" name="image">
+          <option value="">Sin imagen</option>
+          <% imageOptions.forEach((o) => { %><option value="<%= o.value %>"<% if (service.image === o.value) { %> selected<% } %>><%= o.label %></option><% }) %>
+        </select>
+      </div>
+      <div class="grid gap-2 sm:col-span-2">
+        <label class="label" for="summary">Resumen (tarjetas y buscadores)</label>
+        <input class="input" id="summary" name="summary" required maxlength="200" value="<%= service.summary %>">
+      </div>
+      <div class="grid gap-2 sm:col-span-2">
+        <label class="label" for="intro">Introducción</label>
+        <textarea class="textarea" id="intro" name="intro" required maxlength="1000"><%= service.intro %></textarea>
+      </div>
+      <div class="grid gap-2">
+        <label class="label" for="sortOrder">Orden</label>
+        <input class="input" id="sortOrder" name="sortOrder" type="number" min="0" max="10000" value="<%= service.sortOrder %>">
+      </div>
+      <label class="flex items-center gap-3 self-end pb-3">
+        <input class="size-5 accent-brand" type="checkbox" name="isActive"<% if (service.isActive) { %> checked<% } %>>
+        <span class="label">Activo (visible en el sitio)</span>
+      </label>
+    </fieldset>
+
+    <fieldset class="grid gap-4">
+      <legend class="mb-2 font-display text-xl font-bold">Planes y precios</legend>
+      <p class="text-sm text-muted">Deja el nombre vacío para eliminar un plan. Una característica por línea.</p>
+      <% plans.forEach((plan, i) => { const p = 'plans[' + i + ']'; %>
+        <div class="card grid gap-4 sm:grid-cols-4">
+          <div class="grid gap-2 sm:col-span-2"><label class="label" for="plan-<%= i %>-name">Plan <%= i + 1 %>: nombre</label><input class="input" id="plan-<%= i %>-name" name="<%= p %>[name]" maxlength="60" value="<%= plan.name %>"></div>
+          <div class="grid gap-2"><label class="label" for="plan-<%= i %>-price">Precio USD</label><input class="input" id="plan-<%= i %>-price" name="<%= p %>[price]" inputmode="decimal" value="<%= plan.price ?? '' %>" aria-describedby="plan-<%= i %>-price-hint"><p class="hint" id="plan-<%= i %>-price-hint">Vacío si depende del diagnóstico.</p></div>
+          <div class="grid gap-2"><label class="label" for="plan-<%= i %>-label">Texto del precio</label><input class="input" id="plan-<%= i %>-label" name="<%= p %>[priceLabel]" maxlength="30" placeholder="Desde $60" value="<%= plan.priceLabel || '' %>"></div>
+          <div class="grid gap-2 sm:col-span-2"><label class="label" for="plan-<%= i %>-unit">Unidad</label><input class="input" id="plan-<%= i %>-unit" name="<%= p %>[unit]" maxlength="40" placeholder="por eje" value="<%= plan.unit || '' %>"></div>
+          <label class="flex items-center gap-3 self-end pb-3 sm:col-span-2"><input class="size-5 accent-brand" type="checkbox" name="<%= p %>[highlighted]"<% if (plan.highlighted) { %> checked<% } %>><span class="label">Recomendado</span></label>
+          <div class="grid gap-2 sm:col-span-4"><label class="label" for="plan-<%= i %>-features">Características</label><textarea class="textarea min-h-24" id="plan-<%= i %>-features" name="<%= p %>[features]"><%= (plan.features || []).join('\n') %></textarea></div>
+        </div>
+      <% }) %>
+    </fieldset>
+
+    <fieldset class="grid gap-4">
+      <legend class="mb-2 font-display text-xl font-bold">Bloques informativos</legend>
+      <% infos.forEach((block, i) => { const b = 'info[' + i + ']'; %>
+        <div class="card grid gap-4">
+          <div class="grid gap-2"><label class="label" for="info-<%= i %>-title">Bloque <%= i + 1 %>: título</label><input class="input" id="info-<%= i %>-title" name="<%= b %>[title]" maxlength="100" value="<%= block.title %>"></div>
+          <div class="grid gap-2"><label class="label" for="info-<%= i %>-body">Texto</label><textarea class="textarea min-h-20" id="info-<%= i %>-body" name="<%= b %>[body]" maxlength="600"><%= block.body || '' %></textarea></div>
+          <div class="grid gap-2"><label class="label" for="info-<%= i %>-items">Lista (una por línea)</label><textarea class="textarea min-h-20" id="info-<%= i %>-items" name="<%= b %>[items]"><%= (block.items || []).join('\n') %></textarea></div>
+        </div>
+      <% }) %>
+    </fieldset>
+
+    <fieldset class="grid gap-4">
+      <legend class="mb-2 font-display text-xl font-bold">Preguntas frecuentes</legend>
+      <% faqs.forEach((faq, i) => { const f = 'faqs[' + i + ']'; %>
+        <div class="card grid gap-4">
+          <div class="grid gap-2"><label class="label" for="faq-<%= i %>-q">Pregunta <%= i + 1 %></label><input class="input" id="faq-<%= i %>-q" name="<%= f %>[question]" maxlength="160" value="<%= faq.question %>"></div>
+          <div class="grid gap-2"><label class="label" for="faq-<%= i %>-a">Respuesta</label><textarea class="textarea min-h-20" id="faq-<%= i %>-a" name="<%= f %>[answer]" maxlength="800"><%= faq.answer %></textarea></div>
+        </div>
+      <% }) %>
+    </fieldset>
+
+    <div class="flex gap-3">
+      <button class="btn btn-primary btn-lg" type="submit">Guardar</button>
+      <a class="btn btn-secondary btn-lg" href="/admin/contenido">Cancelar</a>
+    </div>
+  </form>
+</div>

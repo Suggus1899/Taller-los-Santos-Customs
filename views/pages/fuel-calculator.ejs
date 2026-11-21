@@ -1,0 +1,37 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Herramienta',
+  heading: 'Calculadora de ahorro de combustible',
+  lead: 'Un motor bien mantenido rinde hasta un ' + gainPercent + ' % más. Calcula cuánto podrías ahorrar al año.',
+  crumbs: [{ label: 'Calculadora de combustible' }]
+}) %>
+
+<section class="section">
+  <div class="container-page grid items-start gap-10 lg:grid-cols-2">
+    <form class="grid gap-5 rounded-2xl border border-line bg-surface p-6 sm:p-10" method="get" action="/calculadora-combustible">
+      <% if (error) { %><div class="alert alert-error" role="alert"><%- icon('alert') %><p><%= error %></p></div><% } %>
+      <%- include('../partials/field', { name: 'km', label: 'Kilómetros por semana', type: 'number', required: true, min: 1, max: 10000, step: 'any', inputmode: 'decimal', errors: {} }) %>
+      <%- include('../partials/field', { name: 'rendimiento', label: 'Rendimiento actual (km por litro)', type: 'number', required: true, min: 1, max: 100, step: 'any', inputmode: 'decimal', errors: {} }) %>
+      <%- include('../partials/field', { name: 'precio', label: 'Precio del litro (USD)', type: 'number', required: true, min: 0.01, max: 100, step: 'any', inputmode: 'decimal', errors: {} }) %>
+      <button class="btn btn-primary btn-lg" type="submit"><%- icon('calculator') %>Calcular ahorro</button>
+    </form>
+
+    <div aria-live="polite">
+      <% if (result) { %>
+        <div class="card text-center">
+          <p class="text-muted">Ahorro estimado al año</p>
+          <p class="my-3 font-display text-5xl font-bold text-success"><%= money(Math.round(result.savings * 100) / 100) %></p>
+          <dl class="mt-4 grid gap-3 rounded-xl border border-line bg-ink p-5 text-left text-sm">
+            <div class="flex justify-between gap-4"><dt class="text-muted">Gasto actual</dt><dd class="font-semibold"><%= money(Math.round(result.yearlyCost)) %> / año</dd></div>
+            <div class="flex justify-between gap-4"><dt class="text-muted">Con mantenimiento</dt><dd class="font-semibold"><%= money(Math.round(result.improvedCost)) %> / año</dd></div>
+          </dl>
+          <a class="btn btn-primary mt-6" href="/cita?servicio=mantenimiento">Agendar mantenimiento</a>
+        </div>
+      <% } else { %>
+        <div class="card">
+          <h2 class="mb-3 text-xl">¿Cómo se calcula?</h2>
+          <p class="text-muted">Estimamos tu gasto anual (52 semanas) y lo comparamos con un rendimiento <%= gainPercent %> % mejor, que es la mejora habitual tras cambiar filtros, bujías y aceite y alinear el vehículo. Es una estimación orientativa.</p>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</section>

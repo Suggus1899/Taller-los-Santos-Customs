@@ -1,0 +1,12 @@
+<div class="container-page max-w-lg">
+  <h1 class="mb-6 text-3xl">Mi cuenta</h1>
+  <% if (done) { %><div class="alert alert-success mb-6" role="status"><%- icon('check') %><p>Contraseña actualizada.</p></div><% } %>
+  <form class="card grid gap-5" method="post" action="/admin/cuenta" novalidate>
+    <h2 class="text-xl">Cambiar contraseña</h2>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <%- include('../partials/field', { name: 'current', label: 'Contraseña actual', type: 'password', required: true, autocomplete: 'current-password' }) %>
+    <%- include('../partials/field', { name: 'password', label: 'Nueva contraseña', type: 'password', required: true, autocomplete: 'new-password', hint: 'Mínimo 12 caracteres.' }) %>
+    <%- include('../partials/field', { name: 'confirm', label: 'Repite la nueva contraseña', type: 'password', required: true, autocomplete: 'new-password' }) %>
+    <button class="btn btn-primary justify-self-start" type="submit">Guardar</button>
+  </form>
+</div>

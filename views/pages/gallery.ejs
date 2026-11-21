@@ -1,0 +1,35 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Galería',
+  heading: 'Nuestro trabajo',
+  lead: 'Un vistazo a nuestras instalaciones y a los servicios que realizamos a diario.',
+  crumbs: [{ label: 'Galería' }]
+}) %>
+
+<section class="section">
+  <div class="container-page">
+    <%# Los filtros solo aparecen con JavaScript; sin él se ven todas las fotos. %>
+    <div class="mb-8 hidden flex-wrap gap-2 [.js_&]:flex" role="group" aria-label="Filtrar por categoría" data-gallery-filters>
+      <button class="btn btn-secondary btn-sm aria-pressed:border-brand aria-pressed:bg-brand aria-pressed:text-white" type="button" aria-pressed="true" data-filter="all">Todas</button>
+      <% Object.entries(categories).forEach(([id, label]) => { %>
+        <button class="btn btn-secondary btn-sm aria-pressed:border-brand aria-pressed:bg-brand aria-pressed:text-white" type="button" aria-pressed="false" data-filter="<%= id %>"><%= label %></button>
+      <% }) %>
+    </div>
+
+    <ul class="grid list-none gap-5 p-0 sm:grid-cols-2 lg:grid-cols-3" data-gallery>
+      <% items.forEach((item) => { %>
+        <li class="overflow-hidden rounded-xl border border-line bg-surface" data-category="<%= item.category %>">
+          <figure>
+            <%- include('../partials/image', { key: item.image, sizes: '(min-width: 1024px) 380px, (min-width: 640px) 50vw, 100vw', cls: 'aspect-[3/2] w-full object-cover' }) %>
+            <figcaption class="px-5 py-4">
+              <span class="badge mb-2"><%= categories[item.category] %></span>
+              <strong class="block"><%= item.title %></strong>
+              <span class="text-sm text-muted"><%= item.description %></span>
+            </figcaption>
+          </figure>
+        </li>
+      <% }) %>
+    </ul>
+  </div>
+</section>
+
+<%- include('../partials/cta') %>

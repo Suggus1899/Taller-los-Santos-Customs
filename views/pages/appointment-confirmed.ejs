@@ -1,0 +1,19 @@
+<section class="section">
+  <div class="container-page max-w-2xl">
+    <div class="card items-center p-8 text-center sm:p-12">
+      <span class="mb-5 grid size-16 place-items-center rounded-full bg-success/12 text-success"><%- icon('check', 'size-8') %></span>
+      <h1 class="mb-3 text-3xl sm:text-4xl">¡Cita registrada!</h1>
+      <p class="lead">Te contactaremos para confirmarla. Guarda este resumen.</p>
+      <dl class="my-8 grid w-full gap-3 rounded-xl border border-line bg-ink p-5 text-left">
+        <div class="flex justify-between gap-4"><dt class="text-muted">Servicio</dt><dd class="text-right font-semibold"><%= appointment.serviceName %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Fecha</dt><dd class="text-right font-semibold first-letter:uppercase"><%= longDate(appointment.date) %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Hora</dt><dd class="text-right font-semibold"><%= timeLabel(appointment.timeSlot) %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Dirección</dt><dd class="text-right font-semibold"><%= site.address.display %></dd></div>
+      </dl>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a class="btn btn-primary" href="/">Volver al inicio</a>
+        <a class="btn btn-secondary" href="<%= whatsappUrl('Hola, acabo de agendar una cita para el ' + appointment.date + ' a las ' + appointment.timeSlot) %>" target="_blank" rel="noopener"><%- icon('whatsapp') %>Avisar por WhatsApp</a>
+      </div>
+    </div>
+  </div>
+</section>

@@ -1,0 +1,30 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Servicios',
+  heading: 'Servicios del taller',
+  lead: 'Precios publicados, repuestos de calidad y garantía en todos los trabajos.',
+  crumbs: [{ label: 'Servicios' }]
+}) %>
+
+<section class="section">
+  <div class="container-page grid gap-6 md:grid-cols-2">
+    <% services.forEach((service) => {
+         const from = service.plans.filter((p) => typeof p.price === 'number' && p.price > 0).map((p) => p.price); %>
+      <a class="card card-link overflow-hidden p-0 sm:flex-row" href="/servicios/<%= service.slug %>">
+        <% if (service.image) { %>
+          <div class="sm:w-2/5"><%- include('../partials/image', { key: service.image, sizes: '(min-width: 768px) 240px, 100vw', cls: 'aspect-[3/2] size-full object-cover sm:aspect-auto' }) %></div>
+        <% } %>
+        <div class="flex flex-1 flex-col p-6">
+          <span class="icon-badge"><%- icon(service.icon) %></span>
+          <h2 class="mb-2 text-xl"><%= service.name %></h2>
+          <p class="text-sm text-muted"><%= service.summary %></p>
+          <div class="mt-auto flex items-center justify-between gap-4 pt-5 text-sm">
+            <span class="text-muted"><%= from.length ? 'Desde ' + money(Math.min(...from)) : 'Según diagnóstico' %></span>
+            <span class="inline-flex items-center gap-1 font-semibold text-accent">Ver detalles<%- icon('arrow-right', 'size-4') %></span>
+          </div>
+        </div>
+      </a>
+    <% }) %>
+  </div>
+</section>
+
+<%- include('../partials/cta', { heading: '¿No sabes qué servicio necesitas?', text: 'Agenda un diagnóstico y te diremos exactamente qué tiene tu vehículo.' }) %>

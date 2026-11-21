@@ -1,0 +1,66 @@
+# Desarrollo:   docker compose up -d db        (solo PostgreSQL; la app corre con npm run dev)
+# Producción:   docker compose --profile app up -d --build
+#               (migraciones → web + worker; requiere un .env con SESSION_SECRET, etc.)
+services:
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: taller
+      POSTGRES_PASSWORD: taller
+      POSTGRES_DB: taller
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./docker/init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U taller']
+      interval: 5s
+      retries: 10
+
+  migrate:
+    profiles: [app]
+    build:
+      context: .
+      target: migrate
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://taller:taller@db:5432/taller
+    depends_on:
+      db:
+        condition: service_healthy
+
+  web:
+    profiles: [app]
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://taller:taller@db:5432/taller
+      NODE_ENV: production
+    ports:
+      - '3000:3000'
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+  worker:
+    profiles: [app]
+    build:
+      context: .
+      target: runtime
+    restart: unless-stopped
+    command: ['node', 'dist/worker.js']
+    env_file: .env
+    environment:
+      DATABASE_URL: postgresql://taller:taller@db:5432/taller
+      NODE_ENV: production
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+
+volumes:
+  pgdata:

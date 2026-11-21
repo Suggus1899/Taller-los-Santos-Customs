@@ -1,0 +1,71 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Servicio',
+  heading: service.name,
+  lead: service.intro,
+  crumbs: [{ href: '/servicios', label: 'Servicios' }, { label: service.name }]
+}) %>
+
+<% if (service.plans.length) { %>
+<section class="section">
+  <div class="container-page">
+    <h2 class="mb-8 text-3xl">Planes y precios</h2>
+    <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+      <% service.plans.forEach((plan) => { %>
+        <%- include('../partials/plan-card', { plan, serviceSlug: service.slug }) %>
+      <% }) %>
+    </div>
+    <p class="mt-5 text-xs text-subtle">Precios referenciales en dólares para vehículos estándar. El precio final se confirma tras la inspección.</p>
+  </div>
+</section>
+<% } %>
+
+<% if (service.info.length) { %>
+<section class="section <%= service.plans.length ? 'border-y border-line bg-surface' : '' %>">
+  <div class="container-page grid items-start gap-12 <%= service.image ? 'lg:grid-cols-2' : '' %>">
+    <div class="grid gap-5 <%= service.image ? '' : 'md:grid-cols-2' %>">
+      <% service.info.forEach((block) => { %>
+        <article class="card bg-ink">
+          <h2 class="mb-2 text-xl"><%= block.title %></h2>
+          <% if (block.body) { %><p class="text-muted"><%= block.body %></p><% } %>
+          <% if (block.items) { %>
+            <ul class="check-list mt-3">
+              <% block.items.forEach((item) => { %><li><%- icon('check', 'size-4') %><%= item %></li><% }) %>
+            </ul>
+          <% } %>
+        </article>
+      <% }) %>
+    </div>
+    <% if (service.image) { %>
+      <div class="overflow-hidden rounded-2xl border border-line lg:sticky lg:top-24">
+        <%- include('../partials/image', { key: service.image, sizes: '(min-width: 1024px) 560px, 100vw', cls: 'aspect-[4/3] w-full object-cover' }) %>
+      </div>
+    <% } %>
+  </div>
+</section>
+<% } %>
+
+<% if (service.faqs.length) { %>
+<section class="section">
+  <div class="container-page max-w-3xl">
+    <h2 class="mb-6 text-3xl">Preguntas frecuentes</h2>
+    <%- include('../partials/faq', { items: service.faqs }) %>
+  </div>
+</section>
+<% } %>
+
+<section class="section pt-0">
+  <div class="container-page">
+    <h2 class="mb-6 text-2xl">Otros servicios</h2>
+    <div class="grid gap-5 md:grid-cols-3">
+      <% related.forEach((item) => { %>
+        <a class="card card-link" href="/servicios/<%= item.slug %>">
+          <span class="icon-badge"><%- icon(item.icon) %></span>
+          <h3 class="mb-2 text-lg"><%= item.name %></h3>
+          <p class="text-sm text-muted"><%= item.summary %></p>
+        </a>
+      <% }) %>
+    </div>
+  </div>
+</section>
+
+<%- include('../partials/cta') %>

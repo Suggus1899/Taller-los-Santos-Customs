@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title><%= title %> | <%= site.name %></title>
+  <meta name="description" content="<%= typeof description !== 'undefined' && description ? description : site.description %>">
+  <% if (typeof noindex !== 'undefined' && noindex) { %>
+  <meta name="robots" content="noindex">
+  <% } else { %>
+  <link rel="canonical" href="<%= siteUrl + currentPath %>">
+  <% } %>
+  <meta name="theme-color" content="#0b0b10">
+  <meta property="og:type" content="website">
+  <meta property="og:locale" content="es_VE">
+  <meta property="og:site_name" content="<%= site.name %>">
+  <meta property="og:title" content="<%= title %> | <%= site.name %>">
+  <meta property="og:description" content="<%= typeof description !== 'undefined' && description ? description : site.description %>">
+  <meta property="og:url" content="<%= siteUrl + currentPath %>">
+  <meta property="og:image" content="<%= siteUrl %>/images/hero-1920.webp">
+  <meta name="twitter:card" content="summary_large_image">
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <%# Ambas fuentes son críticas (texto y titulares): precargarlas evita saltos de diseño (CLS). %>
+  <link rel="preload" href="/fonts/inter-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="preload" href="/fonts/outfit-latin.woff2" as="font" type="font/woff2" crossorigin>
+  <link rel="stylesheet" href="/css/main.css">
+  <script src="/js/js-flag.js"></script>
+  <script type="module" src="/js/main.js"></script>
+  <% if (analyticsEnabled) { %>
+  <script type="module" src="/js/analytics.js" data-ga-id="<%= gaMeasurementId %>"></script>
+  <% } %>
+  <% if (currentPath === '/') { %>
+  <script type="application/ld+json"><%- JSON.stringify({
+    '@context': 'https://schema.org',
+    '@type': 'AutoRepair',
+    name: site.name,
+    description: site.description,
+    url: siteUrl,
+    telephone: site.contact.phoneE164,
+    email: site.contact.email,
+    foundingDate: String(site.foundedYear),
+    openingHours: site.hours.schema,
+    image: siteUrl + '/images/hero-1920.webp',
+    address: {
+      '@type': 'PostalAddress',
+      addressLocality: site.address.locality,
+      addressRegion: site.address.region,
+      addressCountry: site.address.country
+    }
+  }).replace(/</g, '\\u003c') %></script>
+  <% } %>
+</head>
+<body>
+  <a class="skip-link" href="#contenido">Saltar al contenido</a>
+  <%- include('partials/icons') %>
+  <%- include('partials/header') %>
+
+  <main id="contenido" class="flex-1 focus:outline-none" tabindex="-1">
+    <%- body %>
+  </main>
+
+  <%- include('partials/footer') %>
+  <% if (showConsentBanner) { %><%- include('partials/consent-banner') %><% } %>
+
+  <a class="fixed right-4 bottom-4 z-40 grid size-13 place-items-center rounded-full bg-whatsapp text-white shadow-lg shadow-black/40 hover:bg-[#188f47] hover:text-white" href="<%= whatsappUrl() %>" target="_blank" rel="noopener" aria-label="Escríbenos por WhatsApp (se abre en una pestaña nueva)">
+    <%- icon('whatsapp', 'size-6.5') %>
+  </a>
+</body>
+</html>

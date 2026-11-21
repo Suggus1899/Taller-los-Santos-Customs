@@ -1,0 +1,22 @@
+<div class="container-page">
+  <form class="card mx-auto mt-10 grid max-w-md gap-5 p-8" method="post" action="/admin/login">
+    <div>
+      <h1 class="mb-1 text-2xl">Acceso del personal</h1>
+      <p class="text-sm text-muted">Inicia sesión para gestionar citas, cotizaciones y mensajes.</p>
+    </div>
+    <% if (locals.error) { %>
+      <div class="alert alert-error" role="alert"><%- icon('alert') %><p><%= error %></p></div>
+    <% } %>
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <input type="hidden" name="next" value="<%= next %>">
+    <div class="grid gap-2">
+      <label class="label" for="username">Usuario</label>
+      <input class="input" id="username" name="username" type="text" autocomplete="username" required autofocus value="<%= locals.username || '' %>">
+    </div>
+    <div class="grid gap-2">
+      <label class="label" for="password">Contraseña</label>
+      <input class="input" id="password" name="password" type="password" autocomplete="current-password" required>
+    </div>
+    <button class="btn btn-primary btn-lg" type="submit">Iniciar sesión</button>
+  </form>
+</div>

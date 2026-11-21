@@ -1,0 +1,57 @@
+<% const roleLabels = { ADMIN: 'Administrador', STAFF: 'Personal' }; -%>
+<div class="container-page grid gap-10">
+  <section>
+    <h1 class="mb-2 text-3xl">Usuarios</h1>
+    <p class="mb-5 text-sm text-muted">El personal gestiona citas, cotizaciones y mensajes. Los administradores, además, el contenido, los usuarios y el sistema.</p>
+    <div class="overflow-x-auto rounded-xl border border-line">
+      <table class="table">
+        <thead><tr><th scope="col">Usuario</th><th scope="col">Último acceso</th><th scope="col">Rol y estado</th><th scope="col">Restablecer contraseña</th></tr></thead>
+        <tbody>
+          <% users.forEach((u) => { const self = u.id === currentUser.id; %>
+            <tr class="hover:bg-surface">
+              <td class="font-semibold"><%= u.username %><% if (self) { %> <span class="badge">Tú</span><% } %><% if (u.displayName) { %><span class="block text-xs font-normal text-subtle"><%= u.displayName %></span><% } %></td>
+              <td class="text-muted whitespace-nowrap"><%= u.lastLoginAt ? dateTime(u.lastLoginAt) : 'Nunca' %></td>
+              <td>
+                <form class="flex flex-wrap gap-2" method="post" action="/admin/usuarios/<%= u.id %>">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <label class="sr-only" for="role-<%= u.id %>">Rol de <%= u.username %></label>
+                  <select class="select min-h-9 min-w-36 py-1 text-xs" id="role-<%= u.id %>" name="role">
+                    <% roles.forEach((r) => { %><option value="<%= r %>"<% if (u.role === r) { %> selected<% } %>><%= roleLabels[r] %></option><% }) %>
+                  </select>
+                  <label class="sr-only" for="active-<%= u.id %>">Estado de <%= u.username %></label>
+                  <select class="select min-h-9 min-w-28 py-1 text-xs" id="active-<%= u.id %>" name="isActive">
+                    <option value="true"<% if (u.isActive) { %> selected<% } %>>Activo</option>
+                    <option value="false"<% if (!u.isActive) { %> selected<% } %>>Desactivado</option>
+                  </select>
+                  <button class="btn btn-secondary btn-sm" type="submit">Guardar</button>
+                </form>
+              </td>
+              <td>
+                <% if (!self) { %>
+                <form class="flex gap-2" method="post" action="/admin/usuarios/<%= u.id %>/clave">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <label class="sr-only" for="pw-<%= u.id %>">Nueva contraseña para <%= u.username %></label>
+                  <input class="input min-h-9 py-1 text-xs" id="pw-<%= u.id %>" name="password" type="password" autocomplete="new-password" minlength="12" placeholder="Nueva contraseña" required>
+                  <button class="btn btn-secondary btn-sm" type="submit">Cambiar</button>
+                </form>
+                <% } else { %><a class="text-sm" href="/admin/cuenta">Desde Mi cuenta</a><% } %>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section class="max-w-2xl">
+    <h2 class="mb-4 text-2xl">Nuevo usuario</h2>
+    <form class="card grid gap-5 sm:grid-cols-2" method="post" action="/admin/usuarios" novalidate>
+      <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+      <%- include('../partials/field', { name: 'username', label: 'Usuario', required: true, autocomplete: 'off', maxlength: 64 }) %>
+      <%- include('../partials/field', { name: 'displayName', label: 'Nombre', maxlength: 80 }) %>
+      <%- include('../partials/field', { name: 'role', label: 'Rol', as: 'select', required: true, options: roles.map((r) => ({ value: r, label: roleLabels[r] })) }) %>
+      <%- include('../partials/field', { name: 'password', label: 'Contraseña inicial', type: 'password', required: true, autocomplete: 'new-password', hint: 'Mínimo 12 caracteres. Pide a la persona que la cambie en Mi cuenta.' }) %>
+      <div class="sm:col-span-2"><button class="btn btn-primary" type="submit">Crear usuario</button></div>
+    </form>
+  </section>
+</div>

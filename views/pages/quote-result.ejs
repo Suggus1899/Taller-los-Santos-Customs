@@ -1,0 +1,23 @@
+<section class="section">
+  <div class="container-page max-w-2xl">
+    <div class="card items-center p-8 text-center sm:p-12">
+      <span class="mb-5 grid size-16 place-items-center rounded-full bg-success/12 text-success"><%- icon('check', 'size-8') %></span>
+      <h1 class="mb-3 text-3xl sm:text-4xl">Tu cotización</h1>
+      <p class="text-muted">Precio estimado</p>
+      <p class="my-2 font-display text-6xl font-bold"><%= moneyFromCents(quote.estimateCents) %></p>
+      <% if (toVes(quote.estimateCents / 100) !== null) { %>
+        <p class="text-sm text-muted">≈ <%= bolivares(toVes(quote.estimateCents / 100)) %> a tasa oficial BCV del <%= shortDate(officialRate.publishedAt) %></p>
+      <% } %>
+      <dl class="my-8 grid w-full gap-3 rounded-xl border border-line bg-ink p-5 text-left">
+        <div class="flex justify-between gap-4"><dt class="text-muted">Vehículo</dt><dd class="text-right font-semibold"><%= vehicleTypeLabel(quote.vehicleType) %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Servicio</dt><dd class="text-right font-semibold"><%= quoteServiceLabel(quote.serviceCode) %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Extra</dt><dd class="text-right font-semibold"><%= quoteExtraLabel(quote.extraCode) %></dd></div>
+      </dl>
+      <p class="mb-6 text-sm text-muted">Es un precio referencial. Te contactaremos para confirmarlo tras revisar tu vehículo.</p>
+      <div class="flex flex-wrap justify-center gap-3">
+        <a class="btn btn-primary" href="/cita"><%- icon('calendar') %>Agendar cita</a>
+        <a class="btn btn-secondary" href="/cotizar">Nueva cotización</a>
+      </div>
+    </div>
+  </div>
+</section>

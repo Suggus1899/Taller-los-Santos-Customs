@@ -1,0 +1,11 @@
+dist
+public/js
+public/fonts
+public/images
+package-lock.json
+views
+src/generated
+public/css
+test-results
+playwright-report
+.lighthouseci

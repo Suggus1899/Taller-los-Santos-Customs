@@ -1,0 +1,6 @@
+<ul class="grid list-none gap-4 p-0">
+  <li class="flex gap-3"><span class="mt-0.5 text-accent"><%- icon('pin') %></span><span><%= site.address.display %><br><span class="text-subtle"><%= site.address.reference %></span></span></li>
+  <li class="flex gap-3"><span class="mt-0.5 text-accent"><%- icon('phone') %></span><a class="text-muted hover:text-fg" href="tel:<%= site.contact.phoneE164 %>"><%= site.contact.phoneDisplay %></a></li>
+  <li class="flex gap-3"><span class="mt-0.5 text-accent"><%- icon('mail') %></span><a class="text-muted hover:text-fg" href="mailto:<%= site.contact.email %>"><%= site.contact.email %></a></li>
+  <li class="flex gap-3"><span class="mt-0.5 text-accent"><%- icon('clock') %></span><span><%= site.hours.display %></span></li>
+</ul>

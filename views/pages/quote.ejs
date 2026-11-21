@@ -1,0 +1,57 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Rápido y sin compromiso',
+  heading: 'Cotizador en línea',
+  lead: 'Elige tu vehículo y el servicio para obtener un precio estimado. Te contactaremos para confirmarlo.',
+  crumbs: [{ label: 'Cotizar' }]
+}) %>
+
+<%
+  const groups = [
+    { name: 'vehicleType', legend: '1. Tipo de vehículo', options: vehicleTypes, surcharge: true },
+    { name: 'service', legend: '2. Servicio', options: quoteServices },
+    { name: 'extra', legend: '3. Extras', options: quoteExtras }
+  ];
+%>
+
+<section class="section">
+  <div class="container-page max-w-4xl">
+    <form class="grid gap-8 rounded-2xl border border-line bg-surface p-6 sm:p-10" method="post" action="/cotizar" novalidate data-quote-form>
+      <%- include('../partials/form-errors') %>
+
+      <% groups.forEach((group) => { %>
+        <fieldset<% if (errors[group.name]) { %> aria-describedby="<%= group.name %>-error"<% } %>>
+          <legend class="mb-4 font-display text-xl font-bold"><%= group.legend %></legend>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-3">
+            <% group.options.forEach((option) => { %>
+              <label class="choice">
+                <input type="radio" name="<%= group.name %>" value="<%= option.id %>" data-price="<%= option.price %>"<% if (values[group.name] === option.id) { %> checked<% } %> required>
+                <span class="choice-body">
+                  <span class="text-sm font-semibold"><%= option.label %></span>
+                  <span class="text-xs text-muted"><%= option.description %></span>
+                  <span class="mt-1 text-sm font-semibold text-accent"><%= group.surcharge ? (option.price ? '+' + money(option.price) : 'Sin recargo') : (option.price ? money(option.price) : 'Incluido') %></span>
+                </span>
+              </label>
+            <% }) %>
+          </div>
+          <% if (errors[group.name]) { %><p class="field-error mt-2" id="<%= group.name %>-error"><%= errors[group.name] %></p><% } %>
+        </fieldset>
+      <% }) %>
+
+      <div class="hidden items-center justify-between gap-4 rounded-xl border border-accent/35 bg-brand/15 px-5 py-4 [.js_&]:flex" aria-live="polite">
+        <span class="text-muted">Estimado</span>
+        <strong class="font-display text-3xl" data-quote-total>—</strong>
+      </div>
+
+      <fieldset class="grid gap-5 sm:grid-cols-2">
+        <legend class="mb-4 font-display text-xl font-bold">4. Tus datos</legend>
+        <%- include('../partials/field', { name: 'name', label: 'Nombre', required: true, autocomplete: 'name', maxlength: 80 }) %>
+        <%- include('../partials/field', { name: 'email', label: 'Correo electrónico', type: 'email', required: true, autocomplete: 'email' }) %>
+        <%- include('../partials/field', { name: 'phone', label: 'Teléfono', type: 'tel', autocomplete: 'tel', placeholder: '+58 412 555 1234' }) %>
+        <%- include('../partials/field', { name: 'notes', label: 'Comentarios', maxlength: 1000, placeholder: 'Marca, modelo o detalles' }) %>
+      </fieldset>
+
+      <p class="text-xs text-subtle">Precio referencial; el valor final se confirma tras inspeccionar el vehículo. Usaremos tus datos solo para enviarte la cotización.</p>
+      <button class="btn btn-primary btn-lg w-full" type="submit">Obtener cotización</button>
+    </form>
+  </div>
+</section>

@@ -1,0 +1,64 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Reserva en línea',
+  heading: 'Agendar cita',
+  lead: 'Elige el servicio, el día y la hora. Te confirmaremos la cita por correo o teléfono.',
+  crumbs: [{ label: 'Agendar cita' }]
+}) %>
+
+<section class="section">
+  <div class="container-page grid items-start gap-12 lg:grid-cols-[3fr_2fr]">
+    <form class="grid gap-8 rounded-2xl border border-line bg-surface p-6 sm:p-10" method="post" action="/cita" novalidate data-appointment-form>
+      <%- include('../partials/form-errors') %>
+
+      <fieldset class="grid gap-5 sm:grid-cols-2">
+        <legend class="mb-4 font-display text-xl font-bold">1. Servicio</legend>
+        <%- include('../partials/field', { name: 'service', label: 'Servicio', as: 'select', required: true, options: services.map((s) => ({ value: s.slug, label: s.name })) }) %>
+        <%- include('../partials/field', { name: 'vehicle', label: 'Vehículo', placeholder: 'Marca, modelo y año', autocomplete: 'off', maxlength: 80 }) %>
+      </fieldset>
+
+      <fieldset class="grid gap-5">
+        <legend class="mb-4 font-display text-xl font-bold">2. Fecha y hora</legend>
+        <%- include('../partials/field', { name: 'date', label: 'Fecha', type: 'date', required: true, min: minDate, max: maxDate, hint: 'Lunes a viernes, desde mañana y hasta ' + 60 + ' días.' }) %>
+        <fieldset aria-describedby="slots-hint<%= errors.time ? ' slots-error' : '' %>">
+          <legend class="label mb-3">Hora</legend>
+          <div class="grid grid-cols-[repeat(auto-fill,minmax(110px,1fr))] gap-3" data-slots>
+            <% timeSlots.forEach((slot) => { %>
+              <label class="choice">
+                <input type="radio" name="time" value="<%= slot %>"<% if (values.time === slot) { %> checked<% } %> required>
+                <span class="choice-body text-center"><span class="text-sm font-semibold"><%= timeLabel(slot) %></span></span>
+              </label>
+            <% }) %>
+          </div>
+          <p class="hint mt-2" id="slots-hint" data-slots-status aria-live="polite">Las horas ocupadas se deshabilitan al elegir la fecha.</p>
+          <% if (errors.time) { %><p class="field-error mt-2" id="slots-error"><%= errors.time %></p><% } %>
+        </fieldset>
+      </fieldset>
+
+      <fieldset class="grid gap-5 sm:grid-cols-2">
+        <legend class="mb-4 font-display text-xl font-bold">3. Tus datos</legend>
+        <%- include('../partials/field', { name: 'name', label: 'Nombre completo', required: true, autocomplete: 'name', maxlength: 80 }) %>
+        <%- include('../partials/field', { name: 'phone', label: 'Teléfono', type: 'tel', required: true, autocomplete: 'tel', placeholder: '+58 412 555 1234' }) %>
+        <%- include('../partials/field', { name: 'email', label: 'Correo electrónico', type: 'email', required: true, autocomplete: 'email', span2: true }) %>
+        <%- include('../partials/field', { name: 'notes', label: 'Notas', as: 'textarea', maxlength: 1000, span2: true, placeholder: 'Describe brevemente el problema o lo que necesitas' }) %>
+      </fieldset>
+
+      <p class="text-xs text-subtle">Usaremos tus datos solo para gestionar la cita.</p>
+      <button class="btn btn-primary btn-lg w-full" type="submit">Confirmar cita</button>
+    </form>
+
+    <aside class="grid gap-6 lg:sticky lg:top-24">
+      <div class="card">
+        <h2 class="mb-4 text-xl">Antes de venir</h2>
+        <ul class="check-list">
+          <li><%- icon('check', 'size-4') %>Llega 10 minutos antes de tu hora.</li>
+          <li><%- icon('check', 'size-4') %>Trae los documentos del vehículo.</li>
+          <li><%- icon('check', 'size-4') %>Si no puedes asistir, avísanos para liberar el turno.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h2 class="mb-4 text-xl">¿Prefieres hablar con nosotros?</h2>
+        <div class="text-muted"><%- include('../partials/contact-list') %></div>
+      </div>
+    </aside>
+  </div>
+</section>

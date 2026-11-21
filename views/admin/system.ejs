@@ -1,0 +1,57 @@
+<div class="container-page grid gap-10">
+  <section>
+    <h1 class="mb-2 text-3xl">Sistema</h1>
+    <p class="mb-6 text-sm text-muted">La cola envía los correos y ejecuta las tareas programadas. La procesa el proceso <code>worker</code>.</p>
+    <ul class="grid list-none gap-4 p-0 sm:grid-cols-4">
+      <li class="card p-5"><span class="text-sm text-muted">Pendientes</span><span class="font-display text-3xl font-bold"><%= stats.pending %></span></li>
+      <li class="card p-5"><span class="text-sm text-muted">Completados (24 h)</span><span class="font-display text-3xl font-bold"><%= stats.completedLast24h %></span></li>
+      <li class="card p-5"><span class="text-sm text-muted">Fallidos</span><span class="font-display text-3xl font-bold <%= stats.failed ? 'text-danger' : '' %>"><%= stats.failed %></span></li>
+      <li class="card p-5"><span class="text-sm text-muted">Pendiente más antiguo</span><span class="font-semibold"><%= stats.oldestPendingAt ? dateTime(stats.oldestPendingAt) : '—' %></span></li>
+    </ul>
+    <% if (stats.oldestPendingAt && Date.now() - stats.oldestPendingAt.getTime() > 10 * 60 * 1000) { %>
+      <div class="alert alert-error mt-4" role="alert"><%- icon('alert') %><p>Hay trabajos esperando más de 10 minutos: comprueba que el worker esté en ejecución.</p></div>
+    <% } %>
+  </section>
+
+  <section>
+    <h2 class="mb-4 text-2xl">Trabajos fallidos</h2>
+    <% if (!failed.length) { %>
+      <p class="rounded-xl border border-line px-5 py-10 text-center text-muted">No hay trabajos fallidos.</p>
+    <% } else { %>
+    <div class="overflow-x-auto rounded-xl border border-line">
+      <table class="table">
+        <thead><tr><th scope="col">Tipo</th><th scope="col">Falló</th><th scope="col">Intentos</th><th scope="col">Último error</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+        <tbody>
+          <% failed.forEach((job) => { %>
+            <tr class="hover:bg-surface">
+              <td class="font-mono text-xs"><%= job.type %></td>
+              <td class="whitespace-nowrap text-muted"><%= job.failedAt ? dateTime(job.failedAt) : '' %></td>
+              <td><%= job.attempts %></td>
+              <td class="max-w-96 text-xs text-muted"><%= (job.lastError || '').slice(0, 300) %></td>
+              <td>
+                <form method="post" action="/admin/sistema/trabajos/<%= job.id %>/reintentar">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-secondary btn-sm" type="submit">Reintentar</button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </section>
+
+  <section class="max-w-xl">
+    <h2 class="mb-4 text-2xl">Tasa del dólar</h2>
+    <% if (rates && rates.oficial) { %>
+      <dl class="card grid gap-3">
+        <div class="flex justify-between gap-4"><dt class="text-muted">Oficial (BCV)</dt><dd class="font-semibold"><%= bolivares(rates.oficial.rate) %></dd></div>
+        <% if (rates.paralelo) { %><div class="flex justify-between gap-4"><dt class="text-muted">Paralelo</dt><dd class="font-semibold"><%= bolivares(rates.paralelo.rate) %></dd></div><% } %>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Actualizada</dt><dd><%= dateTime(rates.fetchedAt) %><%= rates.stale ? ' (desactualizada)' : '' %></dd></div>
+      </dl>
+    <% } else { %>
+      <p class="text-muted">Sin datos de la tasa todavía.</p>
+    <% } %>
+  </section>
+</div>

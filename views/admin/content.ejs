@@ -1,0 +1,65 @@
+<div class="container-page grid gap-12">
+  <section>
+    <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="mb-1 text-3xl">Servicios</h1>
+        <p class="text-sm text-muted">Se muestran en el sitio en el orden indicado. Los inactivos no aparecen ni admiten citas.</p>
+      </div>
+      <a class="btn btn-primary btn-sm" href="/admin/contenido/servicios/nuevo"><%- icon('plus', 'size-4') %>Nuevo servicio</a>
+    </div>
+    <div class="overflow-x-auto rounded-xl border border-line">
+      <table class="table">
+        <thead><tr><th scope="col">Orden</th><th scope="col">Servicio</th><th scope="col">URL</th><th scope="col">Planes</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+        <tbody>
+          <% services.forEach((s) => { %>
+            <tr class="hover:bg-surface">
+              <td class="text-muted"><%= s.sortOrder %></td>
+              <td class="font-semibold"><%= s.name %><span class="block text-xs font-normal text-subtle"><%= s.summary %></span></td>
+              <td><a href="/servicios/<%= s.slug %>">/servicios/<%= s.slug %></a></td>
+              <td><%= s.plans.length %></td>
+              <td><span class="status <%= s.isActive ? 'status-completed' : 'status-archived' %>"><%= s.isActive ? 'Activo' : 'Inactivo' %></span></td>
+              <td><a class="btn btn-secondary btn-sm" href="/admin/contenido/servicios/<%= s.slug %>">Editar</a></td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section>
+    <div class="mb-5 flex flex-wrap items-end justify-between gap-4">
+      <div>
+        <h1 class="mb-1 text-3xl">Promociones</h1>
+        <p class="text-sm text-muted">Solo se muestran las activas y dentro de sus fechas de vigencia.</p>
+      </div>
+      <a class="btn btn-primary btn-sm" href="/admin/contenido/promociones/nueva"><%- icon('plus', 'size-4') %>Nueva promoción</a>
+    </div>
+    <% if (!promotions.length) { %>
+      <p class="rounded-xl border border-line px-5 py-10 text-center text-muted">No hay promociones.</p>
+    <% } else { %>
+    <div class="overflow-x-auto rounded-xl border border-line">
+      <table class="table">
+        <thead><tr><th scope="col">Orden</th><th scope="col">Promoción</th><th scope="col">Precio</th><th scope="col">Vigencia</th><th scope="col">Estado</th><th scope="col"><span class="sr-only">Acciones</span></th></tr></thead>
+        <tbody>
+          <% promotions.forEach((p) => { %>
+            <tr class="hover:bg-surface">
+              <td class="text-muted"><%= p.sortOrder %></td>
+              <td class="font-semibold"><%= p.title %><% if (p.featured) { %> <span class="badge">Destacada</span><% } %></td>
+              <td><%= p.price %></td>
+              <td class="text-xs text-muted"><%= p.startsAt ? shortDate(p.startsAt) : 'Siempre' %> → <%= p.endsAt ? shortDate(p.endsAt) : 'sin fin' %></td>
+              <td><span class="status <%= p.isActive ? 'status-completed' : 'status-archived' %>"><%= p.isActive ? 'Activa' : 'Inactiva' %></span></td>
+              <td class="flex gap-2">
+                <a class="btn btn-secondary btn-sm" href="/admin/contenido/promociones/<%= p.id %>">Editar</a>
+                <form method="post" action="/admin/contenido/promociones/<%= p.id %>/eliminar">
+                  <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+                  <button class="btn btn-ghost btn-sm text-danger" type="submit">Eliminar<span class="sr-only"> <%= p.title %></span></button>
+                </form>
+              </td>
+            </tr>
+          <% }) %>
+        </tbody>
+      </table>
+    </div>
+    <% } %>
+  </section>
+</div>

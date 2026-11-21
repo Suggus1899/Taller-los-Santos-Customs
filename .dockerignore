@@ -1,0 +1,17 @@
+node_modules
+dist
+public/js
+public/css
+src/generated
+coverage
+test-results
+playwright-report
+.lighthouseci
+.git
+.github
+.env
+.env.*
+!.env.example
+*.log
+database
+docker-compose.yml

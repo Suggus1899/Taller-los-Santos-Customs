@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import type { Env } from '../../config/env.js';
-import { services } from '../../content/services.js';
+import type { ContentCache } from '../../services/content-cache.js';
 
 /** URLs del sitio anterior → nuevas rutas en español (301 conserva el posicionamiento). */
 export const legacyRedirects: Record<string, string> = {
@@ -22,10 +22,9 @@ export const legacyRedirects: Record<string, string> = {
   '/auth/login': '/admin/login',
 };
 
-const publicPaths = [
+const staticPaths = [
   '/',
   '/servicios',
-  ...services.map((s) => `/servicios/${s.slug}`),
   '/promociones',
   '/nosotros',
   '/garantias',
@@ -34,9 +33,10 @@ const publicPaths = [
   '/cita',
   '/contacto',
   '/calculadora-combustible',
+  '/privacidad',
 ];
 
-export function seoRouter(env: Env): Router {
+export function seoRouter(env: Env, content: ContentCache): Router {
   const router = Router();
   const base = env.SITE_URL.replace(/\/$/, '');
 
@@ -50,8 +50,11 @@ export function seoRouter(env: Env): Router {
       .send(`User-agent: *\nDisallow: /admin\nAllow: /\n\nSitemap: ${base}/sitemap.xml\n`);
   });
 
-  router.get('/sitemap.xml', (_req, res) => {
-    const urls = publicPaths.map((p) => `  <url><loc>${base}${p}</loc></url>`).join('\n');
+  router.get('/sitemap.xml', async (_req, res) => {
+    const servicePaths = (await content.services()).map((s) => `/servicios/${s.slug}`);
+    const urls = [...staticPaths, ...servicePaths]
+      .map((p) => `  <url><loc>${base}${p}</loc></url>`)
+      .join('\n');
     res
       .type('application/xml')
       .send(

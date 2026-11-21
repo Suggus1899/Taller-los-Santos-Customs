@@ -53,6 +53,11 @@ enum AuditAction {
   LOGIN_FAILED
   LOGOUT
   STATUS_CHANGED
+  CREATED
+  UPDATED
+  DELETED
+  PASSWORD_CHANGED
+  JOB_RETRIED
 
   @@map("audit_action")
 }
@@ -62,6 +67,9 @@ enum AuditEntity {
   APPOINTMENT
   QUOTE_REQUEST
   CONTACT_MESSAGE
+  SERVICE
+  PROMOTION
+  JOB
 
   @@map("audit_entity")
 }
@@ -146,14 +154,16 @@ model Appointment {
   customer      Customer          @relation(fields: [customerId], references: [id], onDelete: Restrict)
   vehicleId     Int?              @map("vehicle_id")
   vehicle       Vehicle?          @relation(fields: [vehicleId], references: [id], onDelete: SetNull)
-  /// Slug del catálogo de servicios (src/content/services.ts).
-  serviceSlug   String            @map("service_slug") @db.VarChar(40)
+  serviceSlug   String            @map("service_slug") @db.VarChar(60)
+  service       Service           @relation(fields: [serviceSlug], references: [slug], onUpdate: Cascade, onDelete: Restrict)
   /// Día de la cita en hora local del taller (America/Caracas).
   scheduledDate DateTime          @map("scheduled_date") @db.Date
   /// Turno "HH:MM" en hora local del taller.
   timeSlot      String            @map("time_slot") @db.Char(5)
   status        AppointmentStatus @default(PENDING)
   notes         String?           @db.VarChar(1000)
+  /// Cuándo se envió el recordatorio del día anterior (evita duplicados).
+  reminderSentAt DateTime?        @map("reminder_sent_at") @db.Timestamptz(3)
   createdAt     DateTime          @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt     DateTime          @updatedAt @map("updated_at") @db.Timestamptz(3)
 
@@ -245,4 +255,89 @@ model ExchangeRate {
 
   @@unique([source, publishedAt])
   @@map("exchange_rates")
+}
+
+// ───────────────────────────── Contenido ─────────────────────────────
+
+/// Servicio del catálogo, editable desde el panel. Planes, bloques informativos y
+/// preguntas frecuentes son documentos que siempre se leen y escriben junto al
+/// servicio, por eso se guardan como JSONB validado con Zod (src/content/schemas.ts).
+model Service {
+  id           Int           @id @default(autoincrement())
+  /// Parte de la URL (/servicios/<slug>). No se edita: las citas lo referencian.
+  slug         String        @unique @db.VarChar(60)
+  name         String        @db.VarChar(80)
+  icon         String        @db.VarChar(30)
+  imageKey     String?       @map("image_key") @db.VarChar(30)
+  summary      String        @db.VarChar(200)
+  intro        String        @db.VarChar(1000)
+  plans        Json          @default("[]")
+  info         Json          @default("[]")
+  faqs         Json          @default("[]")
+  isActive     Boolean       @default(true) @map("is_active")
+  sortOrder    Int           @default(0) @map("sort_order")
+  createdAt    DateTime      @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt    DateTime      @updatedAt @map("updated_at") @db.Timestamptz(3)
+  appointments Appointment[]
+
+  @@index([isActive, sortOrder])
+  @@map("services")
+}
+
+model Promotion {
+  id            Int       @id @default(autoincrement())
+  title         String    @db.VarChar(80)
+  description   String    @db.VarChar(300)
+  /// Texto del precio tal como se muestra ("$69", "-10 %").
+  price         String    @db.VarChar(20)
+  previousPrice String?   @map("previous_price") @db.VarChar(20)
+  featured      Boolean   @default(false)
+  ctaLabel      String    @map("cta_label") @db.VarChar(40)
+  ctaHref       String    @map("cta_href") @db.VarChar(200)
+  isActive      Boolean   @default(true) @map("is_active")
+  sortOrder     Int       @default(0) @map("sort_order")
+  /// Ventana de vigencia opcional: fuera de ella no se muestra.
+  startsAt      DateTime? @map("starts_at") @db.Timestamptz(3)
+  endsAt        DateTime? @map("ends_at") @db.Timestamptz(3)
+  createdAt     DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt     DateTime  @updatedAt @map("updated_at") @db.Timestamptz(3)
+
+  @@index([isActive, sortOrder])
+  @@map("promotions")
+}
+
+// ───────────────────────────── Infraestructura ─────────────────────────────
+
+/// Cola de trabajos (patrón outbox): se encola en la MISMA transacción que el dato
+/// que la origina, así nunca hay una cita sin su correo ni un correo sin su cita.
+/// La procesa el worker (src/worker.ts) con FOR UPDATE SKIP LOCKED.
+model Job {
+  id          BigInt    @id @default(autoincrement())
+  type        String    @db.VarChar(64)
+  payload     Json
+  runAt       DateTime  @default(now()) @map("run_at") @db.Timestamptz(3)
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5) @map("max_attempts")
+  lockedAt    DateTime? @map("locked_at") @db.Timestamptz(3)
+  completedAt DateTime? @map("completed_at") @db.Timestamptz(3)
+  failedAt    DateTime? @map("failed_at") @db.Timestamptz(3)
+  lastError   String?   @map("last_error")
+  /// Evita encolar dos veces lo mismo (p. ej. la tarea diaria de un día concreto).
+  dedupeKey   String?   @unique @map("dedupe_key") @db.VarChar(120)
+  createdAt   DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  // Además: índice parcial idx_jobs_pending ON (run_at) WHERE pendiente (ver migración).
+  @@index([type, createdAt])
+  @@map("jobs")
+}
+
+/// Contadores del rate limit compartidos entre instancias. Tabla UNLOGGED (ver
+/// migración): más rápida y sin WAL; perder los contadores en un fallo es aceptable.
+model RateLimit {
+  key     String   @id @db.VarChar(200)
+  hits    Int
+  resetAt DateTime @map("reset_at") @db.Timestamptz(3)
+
+  @@index([resetAt])
+  @@map("rate_limits")
 }

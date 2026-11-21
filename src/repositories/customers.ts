@@ -9,7 +9,7 @@ export interface CustomerInput {
 /**
  * Busca al cliente por correo o lo crea. Si ya existe, actualiza nombre y teléfono
  * con los datos más recientes para que el equipo vea la información de contacto vigente.
- * Debe llamarse dentro de una transacción junto con el registro que lo usa.
+ * Debe llamarse dentro de la transacción del caso de uso.
  */
 export async function upsertCustomer(
   tx: Prisma.TransactionClient,
@@ -23,4 +23,19 @@ export async function upsertCustomer(
     select: { id: true },
   });
   return customer.id;
+}
+
+/** Vehículo del cliente identificado por su descripción ("Toyota Corolla 2015"). */
+export async function upsertVehicle(
+  tx: Prisma.TransactionClient,
+  customerId: number,
+  description: string,
+): Promise<number> {
+  const vehicle = await tx.vehicle.upsert({
+    where: { customerId_description: { customerId, description } },
+    create: { customerId, description },
+    update: {},
+    select: { id: true },
+  });
+  return vehicle.id;
 }

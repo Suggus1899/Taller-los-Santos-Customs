@@ -1,6 +1,5 @@
 import { z } from 'zod';
 import { quoteExtraIds, quoteServiceIds, vehicleTypeIds } from '../content/quote.js';
-import { serviceSlugs } from '../content/services.js';
 import { timeSlots } from '../services/schedule.js';
 
 /** Elimina espacios y convierte '' en undefined para los campos opcionales. */
@@ -60,7 +59,10 @@ export const appointmentSchema = z.object({
   email,
   phone,
   vehicle: optionalText(80),
-  service: z.enum(serviceSlugs as [string, ...string[]], { error: 'Elige un servicio.' }),
+  // La existencia del servicio se comprueba contra el catálogo (BD) en la ruta.
+  service: z
+    .string({ error: 'Elige un servicio.' })
+    .regex(/^[a-z0-9-]{1,60}$/, 'Elige un servicio.'),
   date: z.string({ error: 'Elige una fecha.' }).trim().min(1, 'Elige una fecha.'),
   time: z.enum(timeSlots, { error: 'Elige un horario.' }),
   notes: optionalText(1000),

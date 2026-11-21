@@ -4,7 +4,18 @@ import globals from 'globals';
 import tseslint from 'typescript-eslint';
 
 export default tseslint.config(
-  { ignores: ['dist/', 'public/', 'coverage/', 'node_modules/', 'src/generated/'] },
+  {
+    ignores: [
+      'dist/',
+      'public/',
+      'coverage/',
+      'node_modules/',
+      'src/generated/',
+      'test-results/',
+      'playwright-report/',
+      '.lighthouseci/',
+    ],
+  },
   js.configs.recommended,
   ...tseslint.configs.strict,
   {
@@ -15,6 +26,10 @@ export default tseslint.config(
       eqeqeq: ['error', 'always'],
       'no-console': ['warn', { allow: ['info', 'warn', 'error'] }],
     },
+  },
+  {
+    files: ['**/*.cjs'],
+    languageOptions: { sourceType: 'commonjs', globals: { ...globals.node } },
   },
   {
     files: ['src/client/**/*.ts'],

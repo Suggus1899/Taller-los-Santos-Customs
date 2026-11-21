@@ -1,5 +1,4 @@
 import { Router } from 'express';
-import { rateLimit } from 'express-rate-limit';
 import { z } from 'zod';
 import { usdToVes, type ExchangeRates, type RateQuote } from '../../services/exchange-rate.js';
 import type { AppContext } from '../context.js';
@@ -35,18 +34,7 @@ function serializeRates(rates: ExchangeRates) {
 export function apiRouter(ctx: AppContext): Router {
   const router = Router();
 
-  router.use(
-    rateLimit({
-      windowMs: 60_000,
-      limit: 60,
-      standardHeaders: 'draft-8',
-      legacyHeaders: false,
-      skip: () => !ctx.rateLimit,
-      handler: (_req, res) => {
-        res.status(429).json({ error: 'Demasiadas solicitudes. Inténtalo en un minuto.' });
-      },
-    }),
-  );
+  router.use(ctx.limiters.api);
 
   router.get('/tasa-dolar', async (_req, res) => {
     const rates = await ctx.exchangeRates.get();

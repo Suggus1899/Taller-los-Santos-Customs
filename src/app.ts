@@ -3,27 +3,26 @@ import cookieParser from 'cookie-parser';
 import csrf from '@dr.pogodin/csurf';
 import express from 'express';
 import session from 'express-session';
-import morgan from 'morgan';
 import { PUBLIC_DIR, VIEWS_DIR } from './config/paths.js';
-import type { Db } from './db/client.js';
-import type { AppContext } from './http/context.js';
+import type { AppContext, AppDeps } from './http/context.js';
 import { errorHandler, notFoundHandler } from './http/middleware/errors.js';
+import { createLimiters } from './http/middleware/rate-limit.js';
+import { requestLogger } from './http/middleware/request-logger.js';
 import { securityHeaders } from './http/middleware/security.js';
-import { adminRouter, SESSION_COOKIE } from './http/routes/admin.js';
+import { adminRouter, SESSION_COOKIE } from './http/routes/admin/index.js';
 import { apiRouter } from './http/routes/api.js';
 import { formsRouter } from './http/routes/forms.js';
+import { healthRouter } from './http/routes/health.js';
 import { pagesRouter } from './http/routes/pages.js';
+import { privacyRouter, readConsent } from './http/routes/privacy.js';
 import { seoRouter } from './http/routes/seo.js';
 import { viewHelpers } from './http/view-helpers.js';
 import { usdToVes } from './services/exchange-rate.js';
 import { PrismaSessionStore } from './services/session-store.js';
 
-export interface CreateAppOptions extends AppContext {
-  db: Db;
-}
-
-export function createApp({ db, ...ctx }: CreateAppOptions): express.Express {
-  const { env } = ctx;
+export function createApp(deps: AppDeps): express.Express {
+  const { env, db } = deps;
+  const ctx: AppContext = { ...deps, limiters: createLimiters(db, deps.rateLimit) };
   const isProduction = env.NODE_ENV === 'production';
   const app = express();
 
@@ -39,26 +38,57 @@ export function createApp({ db, ...ctx }: CreateAppOptions): express.Express {
     csrfToken: '',
     officialRate: null,
     toVes: () => null,
+    services: [],
+    analyticsEnabled: false,
+    showConsentBanner: false,
   });
+
+  // Sondas antes de todo lo demás: sin logs, sin cookies, sin rate limit.
+  app.use(healthRouter(db));
 
   app.use(securityHeaders(env));
   app.use(compression());
-  if (env.NODE_ENV !== 'test') app.use(morgan(isProduction ? 'combined' : 'dev'));
-
   app.use(
     express.static(PUBLIC_DIR, {
       maxAge: isProduction ? '7d' : 0,
       setHeaders(res, filePath) {
-        // Fuentes e imágenes no cambian de nombre al editarse poco: caché larga.
+        // Fuentes e imágenes casi no cambian: caché larga.
         if (isProduction && /\.(woff2|webp|svg)$/.test(filePath)) {
           res.setHeader('Cache-Control', 'public, max-age=2592000, immutable');
         }
       },
     }),
   );
+  // Después de los estáticos: solo se registran las peticiones a la aplicación.
+  app.use(requestLogger);
 
-  app.use(express.urlencoded({ extended: false, limit: '20kb' }));
+  // `extended` permite campos anidados (plans[0][name]) en los formularios del panel.
+  app.use(express.urlencoded({ extended: true, limit: '50kb', parameterLimit: 500 }));
   app.use(cookieParser());
+
+  // La API pública va antes del CSRF: es de solo lectura y no usa cookies.
+  app.use('/api', apiRouter(ctx));
+
+  // CSRF con cookie de doble envío: protege todos los formularios POST.
+  app.use(
+    csrf({
+      cookie: { key: '_csrf', httpOnly: true, sameSite: 'strict', secure: isProduction, path: '/' },
+    }),
+  );
+
+  // Datos comunes a todas las vistas. `peek()` de la tasa nunca bloquea la respuesta.
+  app.use(async (req, res, next) => {
+    const official = ctx.exchangeRates.peek()?.oficial ?? null;
+    const consent = readConsent(req);
+    res.locals.csrfToken = req.csrfToken();
+    res.locals.currentPath = req.path;
+    res.locals.officialRate = official;
+    res.locals.toVes = (usd: number) => (official ? usdToVes(usd, official.rate) : null);
+    res.locals.services = await ctx.content.services();
+    res.locals.analyticsEnabled = Boolean(env.GA_MEASUREMENT_ID) && consent === 'granted';
+    res.locals.showConsentBanner = Boolean(env.GA_MEASUREMENT_ID) && consent === null;
+    next();
+  });
 
   // Solo el panel usa sesión: los visitantes no generan registros en la tabla `sessions`.
   const sessionMiddleware = session({
@@ -76,31 +106,9 @@ export function createApp({ db, ...ctx }: CreateAppOptions): express.Express {
     },
   });
 
-  // La API pública va antes del CSRF: es de solo lectura y no usa cookies.
-  app.use('/api', apiRouter(ctx));
-
-  // CSRF con cookie de doble envío: protege todos los formularios POST.
-  app.use(
-    csrf({
-      cookie: { key: '_csrf', httpOnly: true, sameSite: 'strict', secure: isProduction, path: '/' },
-    }),
-  );
-  app.use((req, res, next) => {
-    res.locals.csrfToken = req.csrfToken();
-    res.locals.currentPath = req.path;
-    next();
-  });
-
-  // Tasa oficial para mostrar equivalentes en bolívares. `peek()` nunca bloquea la respuesta.
-  app.use((_req, res, next) => {
-    const official = ctx.exchangeRates.peek()?.oficial ?? null;
-    res.locals.officialRate = official;
-    res.locals.toVes = (usd: number) => (official ? usdToVes(usd, official.rate) : null);
-    next();
-  });
-
-  app.use(seoRouter(env));
-  app.use(pagesRouter());
+  app.use(seoRouter(env, ctx.content));
+  app.use(privacyRouter(env));
+  app.use(pagesRouter(ctx.content));
   app.use(formsRouter(ctx));
   app.use('/admin', sessionMiddleware, adminRouter(ctx));
 

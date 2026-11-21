@@ -1,7 +1,5 @@
-import { fromDbDate, isUniqueViolation, toDbDate, type Db } from '../db/client.js';
+import { fromDbDate, toDbDate, type Db, type Prisma } from '../db/client.js';
 import { AppointmentStatus } from '../generated/prisma/enums.js';
-import { writeAudit } from './audit.js';
-import { upsertCustomer, type CustomerInput } from './customers.js';
 
 export { AppointmentStatus };
 export const appointmentStatuses = Object.values(AppointmentStatus);
@@ -14,17 +12,9 @@ export class SlotTakenError extends Error {
   }
 }
 
-export interface NewAppointment {
-  customer: CustomerInput;
-  vehicle?: string | undefined;
-  serviceSlug: string;
-  date: string;
-  timeSlot: string;
-  notes?: string | undefined;
-}
-
 export interface AppointmentSummary {
   serviceSlug: string;
+  serviceName: string;
   date: string;
   timeSlot: string;
   status: AppointmentStatus;
@@ -38,38 +28,88 @@ export interface AppointmentRow extends AppointmentSummary {
   vehicle: string | null;
 }
 
+/** Datos completos de una cita para construir correos. */
+export interface AppointmentDetail extends AppointmentRow {
+  reminderSentAt: Date | null;
+}
+
+const detailSelect = {
+  id: true,
+  serviceSlug: true,
+  scheduledDate: true,
+  timeSlot: true,
+  status: true,
+  notes: true,
+  createdAt: true,
+  reminderSentAt: true,
+  service: { select: { name: true } },
+  customer: { select: { name: true, email: true, phone: true } },
+  vehicle: { select: { description: true } },
+} satisfies Prisma.AppointmentSelect;
+
+type DetailRecord = Prisma.AppointmentGetPayload<{ select: typeof detailSelect }>;
+
+function toDetail(row: DetailRecord): AppointmentDetail {
+  return {
+    id: row.id,
+    serviceSlug: row.serviceSlug,
+    serviceName: row.service.name,
+    date: fromDbDate(row.scheduledDate),
+    timeSlot: row.timeSlot,
+    status: row.status,
+    notes: row.notes,
+    createdAt: row.createdAt,
+    reminderSentAt: row.reminderSentAt,
+    customer: row.customer,
+    vehicle: row.vehicle?.description ?? null,
+  };
+}
+
+type Client = Db | Prisma.TransactionClient;
+
 export function createAppointmentsRepository(db: Db) {
   return {
-    /** Crea la cita y devuelve su identificador público. */
-    async create(input: NewAppointment): Promise<string> {
-      try {
-        return await db.$transaction(async (tx) => {
-          const customerId = await upsertCustomer(tx, input.customer);
-          const vehicle = input.vehicle
-            ? await tx.vehicle.upsert({
-                where: { customerId_description: { customerId, description: input.vehicle } },
-                create: { customerId, description: input.vehicle },
-                update: {},
-                select: { id: true },
-              })
-            : null;
-          const appointment = await tx.appointment.create({
-            data: {
-              customerId,
-              vehicleId: vehicle?.id ?? null,
-              serviceSlug: input.serviceSlug,
-              scheduledDate: toDbDate(input.date),
-              timeSlot: input.timeSlot,
-              notes: input.notes ?? null,
-            },
-            select: { publicId: true },
-          });
-          return appointment.publicId;
-        });
-      } catch (error) {
-        if (isUniqueViolation(error)) throw new SlotTakenError();
-        throw error;
-      }
+    /** Inserta la cita (debe ejecutarse dentro de una transacción del caso de uso). */
+    async insert(
+      tx: Prisma.TransactionClient,
+      input: {
+        customerId: number;
+        vehicleId: number | null;
+        serviceSlug: string;
+        date: string;
+        timeSlot: string;
+        notes: string | null;
+      },
+    ): Promise<{ id: number; publicId: string }> {
+      return tx.appointment.create({
+        data: {
+          customerId: input.customerId,
+          vehicleId: input.vehicleId,
+          serviceSlug: input.serviceSlug,
+          scheduledDate: toDbDate(input.date),
+          timeSlot: input.timeSlot,
+          notes: input.notes,
+        },
+        select: { id: true, publicId: true },
+      });
+    },
+
+    async findDetail(client: Client, id: number): Promise<AppointmentDetail | null> {
+      const row = await client.appointment.findUnique({ where: { id }, select: detailSelect });
+      return row && toDetail(row);
+    },
+
+    /** Citas de un día que aún necesitan recordatorio. */
+    async dueForReminder(client: Client, date: string): Promise<AppointmentDetail[]> {
+      const rows = await client.appointment.findMany({
+        where: {
+          scheduledDate: toDbDate(date),
+          status: { in: [AppointmentStatus.PENDING, AppointmentStatus.CONFIRMED] },
+          reminderSentAt: null,
+        },
+        select: detailSelect,
+      });
+      return rows.map(toDetail);
     },
 
     async takenSlots(date: string): Promise<string[]> {
@@ -83,9 +123,23 @@ export function createAppointmentsRepository(db: Db) {
     async findByPublicId(publicId: string): Promise<AppointmentSummary | null> {
       const row = await db.appointment.findUnique({
         where: { publicId },
-        select: { serviceSlug: true, scheduledDate: true, timeSlot: true, status: true },
+        select: {
+          serviceSlug: true,
+          scheduledDate: true,
+          timeSlot: true,
+          status: true,
+          service: { select: { name: true } },
+        },
       });
-      return row && { ...row, date: fromDbDate(row.scheduledDate) };
+      return (
+        row && {
+          serviceSlug: row.serviceSlug,
+          serviceName: row.service.name,
+          date: fromDbDate(row.scheduledDate),
+          timeSlot: row.timeSlot,
+          status: row.status,
+        }
+      );
     },
 
     async list(status?: AppointmentStatus): Promise<AppointmentRow[]> {
@@ -93,49 +147,9 @@ export function createAppointmentsRepository(db: Db) {
         where: status ? { status } : {},
         orderBy: [{ scheduledDate: 'desc' }, { timeSlot: 'desc' }],
         take: 200,
-        include: {
-          customer: { select: { name: true, email: true, phone: true } },
-          vehicle: { select: { description: true } },
-        },
+        select: detailSelect,
       });
-      return rows.map((row) => ({
-        id: row.id,
-        serviceSlug: row.serviceSlug,
-        date: fromDbDate(row.scheduledDate),
-        timeSlot: row.timeSlot,
-        status: row.status,
-        notes: row.notes,
-        createdAt: row.createdAt,
-        customer: row.customer,
-        vehicle: row.vehicle?.description ?? null,
-      }));
-    },
-
-    /** Cambia el estado y deja constancia en la auditoría. Devuelve false si no existe. */
-    async updateStatus(id: number, status: AppointmentStatus, userId: number): Promise<boolean> {
-      try {
-        return await db.$transaction(async (tx) => {
-          const current = await tx.appointment.findUnique({
-            where: { id },
-            select: { status: true },
-          });
-          if (!current) return false;
-          if (current.status === status) return true;
-          await tx.appointment.update({ where: { id }, data: { status } });
-          await writeAudit(tx, {
-            action: 'STATUS_CHANGED',
-            entityType: 'APPOINTMENT',
-            entityId: id,
-            userId,
-            metadata: { from: current.status, to: status },
-          });
-          return true;
-        });
-      } catch (error) {
-        // Reactivar una cita cancelada cuyo turno ya ocupó otra persona.
-        if (isUniqueViolation(error)) throw new SlotTakenError();
-        throw error;
-      }
+      return rows.map(toDetail);
     },
 
     countByStatus(status: AppointmentStatus): Promise<number> {

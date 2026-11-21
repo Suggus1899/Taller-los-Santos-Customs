@@ -1,7 +1,6 @@
-import type { Db } from '../db/client.js';
+import type { Db, Prisma } from '../db/client.js';
 import { MessageStatus } from '../generated/prisma/enums.js';
 import { writeAudit } from './audit.js';
-import { upsertCustomer, type CustomerInput } from './customers.js';
 
 export { MessageStatus };
 export const messageStatuses = Object.values(MessageStatus);
@@ -16,11 +15,11 @@ export interface MessageRow {
 
 export function createMessagesRepository(db: Db) {
   return {
-    async create(input: { customer: CustomerInput; message: string }): Promise<void> {
-      await db.$transaction(async (tx) => {
-        const customerId = await upsertCustomer(tx, input.customer);
-        await tx.contactMessage.create({ data: { customerId, message: input.message } });
-      });
+    async insert(
+      tx: Prisma.TransactionClient,
+      input: { customerId: number; message: string },
+    ): Promise<void> {
+      await tx.contactMessage.create({ data: input });
     },
 
     list(status?: MessageStatus): Promise<MessageRow[]> {

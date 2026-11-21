@@ -5,7 +5,7 @@
       <h1 class="mb-3 text-3xl sm:text-4xl">¡Cita registrada!</h1>
       <p class="lead">Te contactaremos para confirmarla. Guarda este resumen.</p>
       <dl class="my-8 grid w-full gap-3 rounded-xl border border-line bg-ink p-5 text-left">
-        <div class="flex justify-between gap-4"><dt class="text-muted">Servicio</dt><dd class="text-right font-semibold"><%= serviceName(appointment.serviceSlug) %></dd></div>
+        <div class="flex justify-between gap-4"><dt class="text-muted">Servicio</dt><dd class="text-right font-semibold"><%= appointment.serviceName %></dd></div>
         <div class="flex justify-between gap-4"><dt class="text-muted">Fecha</dt><dd class="text-right font-semibold first-letter:uppercase"><%= longDate(appointment.date) %></dd></div>
         <div class="flex justify-between gap-4"><dt class="text-muted">Hora</dt><dd class="text-right font-semibold"><%= timeLabel(appointment.timeSlot) %></dd></div>
         <div class="flex justify-between gap-4"><dt class="text-muted">Dirección</dt><dd class="text-right font-semibold"><%= site.address.display %></dd></div>

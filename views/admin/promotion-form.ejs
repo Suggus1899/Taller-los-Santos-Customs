@@ -1,0 +1,37 @@
+<%
+  const v = promotion;
+  const dateValue = (d) => (d instanceof Date ? new Intl.DateTimeFormat('en-CA', { timeZone: site.timezone }).format(d) : (typeof d === 'string' ? d : ''));
+  const action = promotionId ? '/admin/contenido/promociones/' + promotionId : '/admin/contenido/promociones/nueva';
+-%>
+<div class="container-page max-w-3xl">
+  <p class="mb-2 text-sm"><a href="/admin/contenido">← Contenido</a></p>
+  <h1 class="mb-6 text-3xl"><%= promotionId ? 'Editar promoción' : 'Nueva promoción' %></h1>
+
+  <% if (errors.length) { %>
+    <div class="alert alert-error mb-6" role="alert">
+      <%- icon('alert') %>
+      <div><p class="font-semibold">Revisa estos datos:</p><ul class="mt-1 list-disc pl-5"><% errors.forEach((e) => { %><li><%= e %></li><% }) %></ul></div>
+    </div>
+  <% } %>
+
+  <form class="card grid gap-5 sm:grid-cols-2" method="post" action="<%= action %>">
+    <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+    <div class="grid gap-2 sm:col-span-2"><label class="label" for="title">Título</label><input class="input" id="title" name="title" required maxlength="80" value="<%= v.title || '' %>"></div>
+    <div class="grid gap-2 sm:col-span-2"><label class="label" for="description">Descripción</label><textarea class="textarea min-h-20" id="description" name="description" required maxlength="300"><%= v.description || '' %></textarea></div>
+    <div class="grid gap-2"><label class="label" for="price">Precio</label><input class="input" id="price" name="price" required maxlength="20" placeholder="$69" value="<%= v.price || '' %>"></div>
+    <div class="grid gap-2"><label class="label" for="previousPrice">Precio anterior <span class="font-normal text-subtle">(opcional)</span></label><input class="input" id="previousPrice" name="previousPrice" maxlength="20" placeholder="$89" value="<%= v.previousPrice || '' %>"></div>
+    <div class="grid gap-2"><label class="label" for="ctaLabel">Texto del botón</label><input class="input" id="ctaLabel" name="ctaLabel" required maxlength="40" value="<%= v.ctaLabel || '' %>"></div>
+    <div class="grid gap-2"><label class="label" for="ctaHref">Enlace del botón</label><input class="input" id="ctaHref" name="ctaHref" required maxlength="200" placeholder="/cita?servicio=frenos" value="<%= v.ctaHref || '' %>" aria-describedby="href-hint"><p class="hint" id="href-hint">Una ruta del sitio, empezando por /.</p></div>
+    <div class="grid gap-2"><label class="label" for="startsAt">Desde <span class="font-normal text-subtle">(opcional)</span></label><input class="input" id="startsAt" name="startsAt" type="date" value="<%= dateValue(v.startsAt) %>"></div>
+    <div class="grid gap-2"><label class="label" for="endsAt">Hasta <span class="font-normal text-subtle">(opcional, no incluido)</span></label><input class="input" id="endsAt" name="endsAt" type="date" value="<%= dateValue(v.endsAt) %>"></div>
+    <div class="grid gap-2"><label class="label" for="sortOrder">Orden</label><input class="input" id="sortOrder" name="sortOrder" type="number" min="0" max="10000" value="<%= v.sortOrder ?? 100 %>"></div>
+    <div class="grid content-end gap-3 pb-1">
+      <label class="flex items-center gap-3"><input class="size-5 accent-brand" type="checkbox" name="featured"<% if (v.featured === true || v.featured === 'on') { %> checked<% } %>><span class="label">Destacada</span></label>
+      <label class="flex items-center gap-3"><input class="size-5 accent-brand" type="checkbox" name="isActive"<% if (v.isActive === true || v.isActive === 'on') { %> checked<% } %>><span class="label">Activa</span></label>
+    </div>
+    <div class="flex gap-3 sm:col-span-2">
+      <button class="btn btn-primary btn-lg" type="submit">Guardar</button>
+      <a class="btn btn-secondary btn-lg" href="/admin/contenido">Cancelar</a>
+    </div>
+  </form>
+</div>

@@ -1,19 +1,18 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { createTestApp, createUser, csrfToken, nextBusinessDay } from './helpers/app.js';
+import {
+  createTestApp,
+  createUser,
+  csrfToken,
+  login as loginAs,
+  nextBusinessDay,
+  type TestAgent,
+} from './helpers/app.js';
 import { resetDatabase } from './helpers/db.js';
 
 beforeEach(() => resetDatabase());
 
-async function login(
-  agent: ReturnType<typeof createTestApp>['agent'],
-  password = 'una-clave-segura-123',
-) {
-  const _csrf = await csrfToken(agent, '/admin/login');
-  return agent
-    .post('/admin/login')
-    .type('form')
-    .send({ _csrf, username: 'Admin', password, next: '/admin' });
-}
+/** Inicia sesión escribiendo el usuario con mayúsculas (el login no las distingue). */
+const login = (agent: TestAgent, password?: string) => loginAs(agent, 'Admin', password);
 
 describe('panel de administración', () => {
   it('exige iniciar sesión', async () => {

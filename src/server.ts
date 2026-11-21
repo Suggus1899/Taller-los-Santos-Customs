@@ -1,41 +1,30 @@
 import { createApp } from './app.js';
-import { loadEnv } from './config/env.js';
-import { createPrismaClient } from './db/client.js';
-import { createRepositories } from './repositories/index.js';
-import { dolarApiProvider, ExchangeRateService } from './services/exchange-rate.js';
-import { createNotifier } from './services/mailer.js';
+import { bootstrap } from './bootstrap.js';
+import { logger } from './lib/logger.js';
+import { flushSentry, initSentry } from './lib/sentry.js';
 
-const env = loadEnv();
-const db = createPrismaClient(env.DATABASE_URL);
-const exchangeRates = new ExchangeRateService(
-  db,
-  env.EXCHANGE_RATE_API_URL ? dolarApiProvider(env.EXCHANGE_RATE_API_URL) : null,
-  env.EXCHANGE_RATE_TTL_MINUTES * 60_000,
-);
+const container = bootstrap();
+const { env, db, exchangeRates } = container;
+initSentry({ dsn: env.SENTRY_DSN, environment: env.NODE_ENV });
+
 void exchangeRates.refresh(); // precarga la tasa al arrancar
 
-const app = createApp({
-  env,
-  db,
-  repos: createRepositories(db),
-  notifier: createNotifier(env),
-  exchangeRates,
-  rateLimit: true,
-});
+const app = createApp({ ...container, rateLimit: true });
 
 const server = app.listen(env.PORT, () => {
-  console.info(`Taller Los Santos escuchando en http://localhost:${env.PORT} (${env.NODE_ENV})`);
+  logger.info({ port: env.PORT, env: env.NODE_ENV }, 'Taller Los Santos escuchando');
 });
 
-/** Cierre ordenado: deja de aceptar conexiones y libera la base de datos. */
+/** Cierre ordenado: deja de aceptar conexiones, termina las peticiones en curso y libera la BD. */
 function shutdown(signal: string) {
-  console.info(`${signal} recibido, cerrando…`);
+  logger.info({ signal }, 'cerrando servidor…');
+  setTimeout(() => process.exit(1), 10_000).unref();
   server.close(() => {
-    db.$disconnect()
-      .catch((error: unknown) => console.error(error))
+    void flushSentry()
+      .then(() => db.$disconnect())
+      .catch((error: unknown) => logger.error({ err: error }, 'error al cerrar'))
       .finally(() => process.exit(0));
   });
-  setTimeout(() => process.exit(1), 10_000).unref();
 }
 
 process.on('SIGTERM', () => shutdown('SIGTERM'));

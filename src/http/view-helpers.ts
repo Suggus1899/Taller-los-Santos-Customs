@@ -1,7 +1,6 @@
 import { site, whatsappUrl } from '../config/site.js';
 import { images, type ImageKey } from '../content/images.js';
 import { labelOf, quoteExtras, quoteServices, vehicleTypes } from '../content/quote.js';
-import { findService, services } from '../content/services.js';
 
 const dateFormatter = new Intl.DateTimeFormat(site.locale, {
   weekday: 'long',
@@ -39,7 +38,6 @@ export const navigation = [
 export const viewHelpers = {
   site,
   navigation,
-  services,
   whatsappUrl,
 
   /** "$69" o "$69,50" a partir de dólares. */
@@ -68,9 +66,6 @@ export const viewHelpers = {
     const [h = 0, m = 0] = slot.split(':').map(Number);
     const suffix = h < 12 ? 'a. m.' : 'p. m.';
     return `${h % 12 || 12}:${String(m).padStart(2, '0')} ${suffix}`;
-  },
-  serviceName(slug: string): string {
-    return findService(slug)?.name ?? slug;
   },
   vehicleTypeLabel: (id: string) => labelOf(vehicleTypes, id.toLowerCase()),
   quoteServiceLabel: (id: string) => labelOf(quoteServices, id),

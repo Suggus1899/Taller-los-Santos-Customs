@@ -1,0 +1,55 @@
+<%- include('../partials/page-hero', {
+  eyebrow: 'Privacidad',
+  heading: 'Política de privacidad',
+  lead: 'Qué datos recogemos, para qué los usamos y cuánto tiempo los conservamos.',
+  crumbs: [{ label: 'Privacidad' }]
+}) %>
+
+<section class="section">
+  <div class="container-page max-w-3xl space-y-10 text-muted">
+    <div>
+      <h2 class="mb-3 text-2xl text-fg">Responsable</h2>
+      <p><%= site.name %>, <%= site.address.display %>. Contacto: <a href="mailto:<%= site.contact.email %>"><%= site.contact.email %></a>.</p>
+    </div>
+
+    <div>
+      <h2 class="mb-3 text-2xl text-fg">Qué datos recogemos y para qué</h2>
+      <ul class="check-list">
+        <li><%- icon('check', 'size-4') %>Nombre, correo y teléfono que nos das en los formularios de cita, cotización y contacto, para atender tu solicitud y avisarte por correo (confirmación, cambios y recordatorio de la cita).</li>
+        <li><%- icon('check', 'size-4') %>Datos del vehículo y notas que escribas, para preparar el servicio.</li>
+        <li><%- icon('check', 'size-4') %>No guardamos tu dirección IP ni tu ubicación. Solo se usa la IP de forma temporal para limitar envíos abusivos.</li>
+      </ul>
+    </div>
+
+    <div>
+      <h2 class="mb-3 text-2xl text-fg">Cuánto tiempo los conservamos</h2>
+      <p>Los mensajes, las cotizaciones y las citas ya cerradas se borran automáticamente a los <strong class="text-fg"><%= retentionMonths %> meses</strong>. Los datos de clientes sin solicitudes pendientes se eliminan en ese mismo plazo.</p>
+    </div>
+
+    <div>
+      <h2 class="mb-3 text-2xl text-fg">Cookies</h2>
+      <ul class="check-list">
+        <li><%- icon('check', 'size-4') %><strong class="text-fg">Necesarias:</strong> protección contra falsificación de formularios (CSRF) y, si eres personal del taller, la sesión del panel.</li>
+        <li><%- icon('check', 'size-4') %><strong class="text-fg">Analítica (opcional):</strong> <% if (gaMeasurementId) { %>Google Analytics, solo si lo aceptas<% } else { %>actualmente no usamos ninguna<% } %>.</li>
+      </ul>
+      <% if (gaMeasurementId) { %>
+        <div class="mt-5 flex flex-wrap items-center gap-3">
+          <span>Tu elección actual: <strong class="text-fg"><%= analyticsEnabled ? 'aceptada' : (showConsentBanner ? 'sin decidir' : 'rechazada') %></strong>.</span>
+          <% ['granted', 'denied'].forEach((decision) => { %>
+            <form method="post" action="/privacidad/consentimiento">
+              <input type="hidden" name="_csrf" value="<%= csrfToken %>">
+              <input type="hidden" name="decision" value="<%= decision %>">
+              <input type="hidden" name="returnTo" value="/privacidad">
+              <button class="btn btn-secondary btn-sm" type="submit"><%= decision === 'granted' ? 'Aceptar analítica' : 'Rechazar analítica' %></button>
+            </form>
+          <% }) %>
+        </div>
+      <% } %>
+    </div>
+
+    <div>
+      <h2 class="mb-3 text-2xl text-fg">Tus derechos</h2>
+      <p>Puedes pedirnos acceder a tus datos, corregirlos o borrarlos escribiendo a <a href="mailto:<%= site.contact.email %>"><%= site.contact.email %></a>.</p>
+    </div>
+  </div>
+</section>

@@ -13,9 +13,6 @@
 <div class="container-page">
   <h1 class="mb-6 text-3xl">Panel de gestión</h1>
 
-  <% if (flash) { %>
-    <div class="alert alert-info mb-6" role="status"><%- icon('alert') %><p><%= flash %></p></div>
-  <% } %>
 
   <ul class="mb-8 grid list-none gap-4 p-0 sm:grid-cols-3">
     <% tabDefs.forEach((t) => { %>
@@ -73,7 +70,7 @@
               <% if (row.customer.phone) { %><a class="block text-xs" href="tel:<%= row.customer.phone %>"><%= row.customer.phone %></a><% } %>
             </td>
             <% if (tab === 'citas') { %>
-              <td><%= serviceName(row.serviceSlug) %><% if (row.vehicle) { %><span class="block text-xs text-subtle"><%= row.vehicle %></span><% } %></td>
+              <td><%= row.serviceName %><% if (row.vehicle) { %><span class="block text-xs text-subtle"><%= row.vehicle %></span><% } %></td>
               <td class="max-w-80 whitespace-pre-line text-muted"><%= row.notes || '—' %></td>
             <% } else if (tab === 'cotizaciones') { %>
               <td><%= quoteServiceLabel(row.serviceCode) %><span class="block text-xs text-subtle"><%= vehicleTypeLabel(row.vehicleType) %> · <%= quoteExtraLabel(row.extraCode) %></span><% if (row.notes) { %><span class="block text-xs text-subtle"><%= row.notes %></span><% } %></td>

@@ -30,6 +30,13 @@ const envSchema = z
       .default('https://ve.dolarapi.com/v1/dolares'),
     /** Minutos que se considera vigente la tasa en caché antes de refrescarla. */
     EXCHANGE_RATE_TTL_MINUTES: z.coerce.number().int().min(1).max(1440).default(30),
+    LOG_LEVEL: z.enum(['fatal', 'error', 'warn', 'info', 'debug', 'trace', 'silent']).optional(),
+    /** DSN de Sentry para reportar errores (opcional). */
+    SENTRY_DSN: z.union([z.url(), z.literal('')]).optional(),
+    /** Meses que se conservan mensajes, cotizaciones y citas cerradas antes de borrarlos. */
+    DATA_RETENTION_MONTHS: z.coerce.number().int().min(1).max(120).default(12),
+    /** Hora local (0-23) a la que se envían los recordatorios de las citas del día siguiente. */
+    REMINDER_HOUR: z.coerce.number().int().min(0).max(23).default(18),
     SMTP_HOST: optionalString,
     SMTP_PORT: z.coerce.number().int().positive().default(587),
     SMTP_USER: optionalString,

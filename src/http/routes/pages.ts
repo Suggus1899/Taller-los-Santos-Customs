@@ -12,9 +12,8 @@ import {
   timeline,
   values,
 } from '../../content/home.js';
-import { promotions } from '../../content/promotions.js';
-import { findService, services } from '../../content/services.js';
 import { site } from '../../config/site.js';
+import type { ContentCache } from '../../services/content-cache.js';
 import { renderPage } from '../render.js';
 
 /** Mejora estimada del rendimiento tras un mantenimiento completo. */
@@ -32,7 +31,7 @@ export function calculateFuelSavings(kmPerWeek: number, kmPerLiter: number, pric
   return { yearlyCost, improvedCost, savings: yearlyCost - improvedCost };
 }
 
-export function pagesRouter(): Router {
+export function pagesRouter(content: ContentCache): Router {
   const router = Router();
   const yearsOfExperience = new Date().getFullYear() - site.foundedYear;
 
@@ -57,7 +56,7 @@ export function pagesRouter(): Router {
   });
 
   router.get('/servicios/:slug', async (req, res, next) => {
-    const service = findService(req.params.slug);
+    const service = await content.service(req.params.slug);
     if (!service) {
       next();
       return;
@@ -66,7 +65,7 @@ export function pagesRouter(): Router {
       title: service.name,
       description: service.summary,
       service,
-      related: services.filter((s) => s.slug !== service.slug).slice(0, 3),
+      related: (await content.services()).filter((s) => s.slug !== service.slug).slice(0, 3),
     });
   });
 
@@ -104,7 +103,7 @@ export function pagesRouter(): Router {
     await renderPage(res, 'pages/promotions', {
       title: 'Promociones',
       description: 'Ofertas vigentes en mantenimiento, alineación y diagnóstico.',
-      promotions,
+      promotions: await content.promotions(),
     });
   });
 

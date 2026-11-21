@@ -1,4 +1,4 @@
-import { Router, type Request } from 'express';
+import { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
 import {
   calculateEstimate,
@@ -6,8 +6,6 @@ import {
   quoteServices,
   vehicleTypes,
 } from '../../content/quote.js';
-import { findService, services } from '../../content/services.js';
-import type { VehicleType } from '../../generated/prisma/enums.js';
 import { SlotTakenError } from '../../repositories/appointments.js';
 import {
   BOOKING_WINDOW_DAYS,
@@ -16,8 +14,8 @@ import {
   todayInShopTimezone,
   validateBookingDate,
 } from '../../services/schedule.js';
-import { notifyInBackground, type AppContext } from '../context.js';
-import { formLimiter } from '../middleware/rate-limit.js';
+import { UnknownServiceError } from '../../use-cases/index.js';
+import type { AppContext } from '../context.js';
 import { renderPage } from '../render.js';
 import {
   appointmentSchema,
@@ -36,17 +34,19 @@ function isBot(req: Request): boolean {
   return typeof value === 'string' && value.length > 0;
 }
 
+const statusFor = (errors: FieldErrors) => (Object.keys(errors).length ? 422 : 200);
+
+/**
+ * Formularios públicos. Patrón PRG (Post/Redirect/Get): tras guardar se redirige
+ * con 303 para que recargar la página no reenvíe el formulario.
+ */
 export function formsRouter(ctx: AppContext): Router {
   const router = Router();
-  const limit = formLimiter(() => !ctx.rateLimit);
+  const { useCases, repos, content, limiters } = ctx;
 
   // ─────────────────────────────── Contacto ───────────────────────────────
 
-  const renderContact = (
-    res: Parameters<typeof renderPage>[0],
-    values = {},
-    errors: FieldErrors = {},
-  ) =>
+  const renderContact = (res: Response, values = {}, errors: FieldErrors = {}) =>
     renderPage(
       res,
       'pages/contact',
@@ -56,25 +56,19 @@ export function formsRouter(ctx: AppContext): Router {
         values,
         errors,
       },
-      Object.keys(errors).length ? 422 : 200,
+      statusFor(errors),
     );
 
   router.get('/contacto', async (_req, res) => renderContact(res));
 
-  router.post('/contacto', limit, async (req, res) => {
+  router.post('/contacto', limiters.form, async (req, res) => {
     if (isBot(req)) return res.redirect(303, '/contacto/enviado');
     const parsed = contactSchema.safeParse(req.body);
-    if (!parsed.success)
+    if (!parsed.success) {
       return renderContact(res, formValues(req.body), toFieldErrors(parsed.error));
-
+    }
     const { name, email, phone, message } = parsed.data;
-    await ctx.repos.messages.create({ customer: { name, email, phone }, message });
-    notifyInBackground(
-      ctx,
-      `Nuevo mensaje de ${name}`,
-      `Nombre: ${name}\nCorreo: ${email}\nTeléfono: ${phone ?? '-'}\n\n${message}`,
-      email,
-    );
+    await useCases.sendContactMessage({ customer: { name, email, phone }, message });
     res.redirect(303, '/contacto/enviado');
   });
 
@@ -89,8 +83,8 @@ export function formsRouter(ctx: AppContext): Router {
 
   // ───────────────────────────────── Citas ─────────────────────────────────
 
-  const renderAppointment = (
-    res: Parameters<typeof renderPage>[0],
+  const renderAppointment = async (
+    res: Response,
     values: Record<string, unknown> = {},
     errors: FieldErrors = {},
   ) => {
@@ -103,19 +97,19 @@ export function formsRouter(ctx: AppContext): Router {
         description: 'Reserva tu cita en línea en Taller Los Santos.',
         values,
         errors,
-        services,
         timeSlots,
+        bookingWindowDays: BOOKING_WINDOW_DAYS,
         minDate: addDays(today, 1),
         maxDate: addDays(today, BOOKING_WINDOW_DAYS),
-        noindex: false,
       },
-      Object.keys(errors).length ? 422 : 200,
+      statusFor(errors),
     );
   };
 
   router.get('/cita', async (req, res) => {
     const preselected = typeof req.query.servicio === 'string' ? req.query.servicio : '';
-    await renderAppointment(res, findService(preselected) ? { service: preselected } : {});
+    const known = preselected && (await content.service(preselected));
+    await renderAppointment(res, known ? { service: preselected } : {});
   });
 
   /** Turnos ocupados de un día, para que el navegador deshabilite esas horas. */
@@ -128,23 +122,26 @@ export function formsRouter(ctx: AppContext): Router {
     }
     res
       .set('Cache-Control', 'no-store')
-      .json({ date, taken: await ctx.repos.appointments.takenSlots(date) });
+      .json({ date, taken: await repos.appointments.takenSlots(date) });
   });
 
-  router.post('/cita', limit, async (req, res) => {
+  router.post('/cita', limiters.form, async (req, res) => {
     if (isBot(req)) return res.redirect(303, '/');
     const values = formValues(req.body);
     const parsed = appointmentSchema.safeParse(req.body);
     const errors = parsed.success ? {} : toFieldErrors(parsed.error);
     const dateError = validateBookingDate(values.date ?? '');
     if (dateError) errors.date ??= dateError;
-    if (!parsed.success || Object.keys(errors).length)
+    if (parsed.success && !(await content.service(parsed.data.service))) {
+      errors.service = 'Elige un servicio.';
+    }
+    if (!parsed.success || Object.keys(errors).length) {
       return renderAppointment(res, values, errors);
+    }
 
     const { name, email, phone, vehicle, service, date, time, notes } = parsed.data;
-    let publicId: string;
     try {
-      publicId = await ctx.repos.appointments.create({
+      const publicId = await useCases.bookAppointment({
         customer: { name, email, phone },
         vehicle,
         serviceSlug: service,
@@ -152,28 +149,23 @@ export function formsRouter(ctx: AppContext): Router {
         timeSlot: time,
         notes,
       });
+      res.redirect(303, `/cita/confirmada/${publicId}`);
     } catch (error) {
       if (error instanceof SlotTakenError) {
         return renderAppointment(res, values, {
           time: 'Ese horario acaba de ocuparse. Elige otro.',
         });
       }
+      if (error instanceof UnknownServiceError) {
+        return renderAppointment(res, values, { service: 'Ese servicio ya no está disponible.' });
+      }
       throw error;
     }
-
-    notifyInBackground(
-      ctx,
-      `Nueva cita: ${date} ${time}`,
-      `Cliente: ${name}\nCorreo: ${email}\nTeléfono: ${phone}\nVehículo: ${vehicle ?? '-'}\n` +
-        `Servicio: ${findService(service)?.name ?? service}\nFecha: ${date} ${time}\nNotas: ${notes ?? '-'}`,
-      email,
-    );
-    res.redirect(303, `/cita/confirmada/${publicId}`);
   });
 
   router.get('/cita/confirmada/:publicId', async (req, res, next) => {
     const id = publicIdSchema.safeParse(req.params.publicId);
-    const appointment = id.success ? await ctx.repos.appointments.findByPublicId(id.data) : null;
+    const appointment = id.success ? await repos.appointments.findByPublicId(id.data) : null;
     if (!appointment) return next();
     await renderPage(res, 'pages/appointment-confirmed', {
       title: 'Cita registrada',
@@ -185,7 +177,7 @@ export function formsRouter(ctx: AppContext): Router {
   // ────────────────────────────── Cotizaciones ─────────────────────────────
 
   const renderQuote = (
-    res: Parameters<typeof renderPage>[0],
+    res: Response,
     values: Record<string, unknown> = {},
     errors: FieldErrors = {},
   ) =>
@@ -201,42 +193,34 @@ export function formsRouter(ctx: AppContext): Router {
         quoteServices,
         quoteExtras,
       },
-      Object.keys(errors).length ? 422 : 200,
+      statusFor(errors),
     );
 
   router.get('/cotizar', async (_req, res) =>
     renderQuote(res, { vehicleType: 'sedan', extra: 'none' }),
   );
 
-  router.post('/cotizar', limit, async (req, res) => {
+  router.post('/cotizar', limiters.form, async (req, res) => {
     if (isBot(req)) return res.redirect(303, '/');
     const parsed = quoteSchema.safeParse(req.body);
     if (!parsed.success) return renderQuote(res, formValues(req.body), toFieldErrors(parsed.error));
 
     const { name, email, phone, vehicleType, service, extra, notes } = parsed.data;
-    // El precio se calcula aquí, nunca se acepta del navegador.
-    const estimate = calculateEstimate({ vehicleType, service, extra });
-    const publicId = await ctx.repos.quotes.create({
+    const publicId = await useCases.requestQuote({
       customer: { name, email, phone },
-      vehicleType: vehicleType.toUpperCase() as VehicleType,
+      vehicleType,
       serviceCode: service,
       extraCode: extra,
-      estimateCents: estimate * 100,
+      // El precio se calcula aquí, nunca se acepta del navegador.
+      estimate: calculateEstimate({ vehicleType, service, extra }),
       notes,
     });
-    notifyInBackground(
-      ctx,
-      `Nueva cotización: $${estimate}`,
-      `Cliente: ${name}\nCorreo: ${email}\nTeléfono: ${phone ?? '-'}\n` +
-        `Vehículo: ${vehicleType}\nServicio: ${service}\nExtra: ${extra}\nEstimado: $${estimate}\nNotas: ${notes ?? '-'}`,
-      email,
-    );
     res.redirect(303, `/cotizar/resultado/${publicId}`);
   });
 
   router.get('/cotizar/resultado/:publicId', async (req, res, next) => {
     const id = publicIdSchema.safeParse(req.params.publicId);
-    const quote = id.success ? await ctx.repos.quotes.findByPublicId(id.data) : null;
+    const quote = id.success ? await repos.quotes.findByPublicId(id.data) : null;
     if (!quote) return next();
     await renderPage(res, 'pages/quote-result', { title: 'Tu cotización', quote, noindex: true });
   });

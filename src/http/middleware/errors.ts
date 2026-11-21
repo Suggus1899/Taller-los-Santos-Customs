@@ -1,4 +1,6 @@
 import type { ErrorRequestHandler, RequestHandler } from 'express';
+import { logger } from '../../lib/logger.js';
+import { captureException } from '../../lib/sentry.js';
 import { renderPage } from '../render.js';
 
 export const notFoundHandler: RequestHandler = async (_req, res) => {
@@ -24,7 +26,7 @@ function hasStatus(error: unknown): error is { status: number; code?: string } {
 }
 
 export function errorHandler(isProduction: boolean): ErrorRequestHandler {
-  return async (error: unknown, _req, res, next) => {
+  return async (error: unknown, req, res, next) => {
     if (res.headersSent) {
       next(error);
       return;
@@ -47,7 +49,10 @@ export function errorHandler(isProduction: boolean): ErrorRequestHandler {
 
     const status =
       hasStatus(error) && error.status >= 400 && error.status < 600 ? error.status : 500;
-    if (status >= 500) console.error(error);
+    if (status >= 500) {
+      (req.log ?? logger).error({ err: error }, 'error no controlado');
+      captureException(error, { requestId: String(req.id ?? '') });
+    }
 
     await renderPage(
       res,

@@ -84,6 +84,11 @@
     @apply text-accent underline-offset-4 hover:text-fg;
   }
 
+  /* Enlaces dentro de texto corrido: subrayados, no solo de otro color (WCAG 1.4.1). */
+  :where(p, dd, li:not(nav li)) > a:not(.btn) {
+    @apply underline decoration-accent/50 hover:decoration-current;
+  }
+
   :focus-visible {
     @apply rounded-md outline-none ring-3 ring-accent/60;
   }

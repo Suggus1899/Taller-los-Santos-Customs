@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import type { Db } from '../db/client.js';
 import { RateSource } from '../generated/prisma/enums.js';
+import { logger } from '../lib/logger.js';
 
 export { RateSource };
 
@@ -82,6 +83,11 @@ export class ExchangeRateService {
     private readonly now: () => number = Date.now,
   ) {}
 
+  /** false si la consulta externa está desactivada (solo se usa la BD). */
+  get hasProvider(): boolean {
+    return this.provider !== null;
+  }
+
   private isFresh(rates: ExchangeRates): boolean {
     return this.now() - rates.fetchedAt.getTime() < this.ttlMs;
   }
@@ -119,7 +125,7 @@ export class ExchangeRateService {
         return this.cache;
       } catch (error) {
         this.retryAt = this.now() + ExchangeRateService.RETRY_AFTER_MS;
-        console.warn('No se pudo obtener la tasa del dólar:', (error as Error).message);
+        logger.warn({ err: error }, 'no se pudo obtener la tasa del dólar');
       }
     }
     // Respaldo: última tasa conocida en la base de datos (marcada como no vigente).

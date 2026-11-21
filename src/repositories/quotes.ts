@@ -1,19 +1,9 @@
-import type { Db } from '../db/client.js';
+import type { Db, Prisma } from '../db/client.js';
 import { QuoteStatus, type VehicleType } from '../generated/prisma/enums.js';
 import { writeAudit } from './audit.js';
-import { upsertCustomer, type CustomerInput } from './customers.js';
 
 export { QuoteStatus };
 export const quoteStatuses = Object.values(QuoteStatus);
-
-export interface NewQuoteRequest {
-  customer: CustomerInput;
-  vehicleType: VehicleType;
-  serviceCode: string;
-  extraCode: string;
-  estimateCents: number;
-  notes?: string | undefined;
-}
 
 export interface QuoteSummary {
   vehicleType: VehicleType;
@@ -33,22 +23,23 @@ export interface QuoteRow extends QuoteSummary {
 
 export function createQuotesRepository(db: Db) {
   return {
-    async create(input: NewQuoteRequest): Promise<string> {
-      return db.$transaction(async (tx) => {
-        const customerId = await upsertCustomer(tx, input.customer);
-        const quote = await tx.quoteRequest.create({
-          data: {
-            customerId,
-            vehicleType: input.vehicleType,
-            serviceCode: input.serviceCode,
-            extraCode: input.extraCode,
-            estimateCents: input.estimateCents,
-            notes: input.notes ?? null,
-          },
-          select: { publicId: true },
-        });
-        return quote.publicId;
+    async insert(
+      tx: Prisma.TransactionClient,
+      input: QuoteSummary & { customerId: number; notes: string | null },
+    ): Promise<string> {
+      const quote = await tx.quoteRequest.create({
+        data: {
+          customerId: input.customerId,
+          vehicleType: input.vehicleType,
+          serviceCode: input.serviceCode,
+          extraCode: input.extraCode,
+          estimateCents: input.estimateCents,
+          currency: input.currency,
+          notes: input.notes,
+        },
+        select: { publicId: true },
       });
+      return quote.publicId;
     },
 
     findByPublicId(publicId: string): Promise<QuoteSummary | null> {

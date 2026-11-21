@@ -1,15 +1,24 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { services } from '../src/content/services.js';
 import { createTestApp, csrfToken, nextBusinessDay, nextSaturday } from './helpers/app.js';
 import { resetDatabase } from './helpers/db.js';
 
 beforeEach(() => resetDatabase());
 
 describe('páginas públicas', () => {
+  // Los servicios vienen del catálogo inicial que inserta la migración.
+  const serviceSlugs = [
+    'mantenimiento',
+    'reparaciones',
+    'diagnostico',
+    'aire-acondicionado',
+    'frenos',
+    'neumaticos',
+  ];
   const paths = [
     '/',
     '/servicios',
-    ...services.map((s) => `/servicios/${s.slug}`),
+    ...serviceSlugs.map((slug) => `/servicios/${slug}`),
+    '/privacidad',
     '/nosotros',
     '/garantias',
     '/galeria',
@@ -86,8 +95,8 @@ describe('formulario de contacto', () => {
     expect(res.text).toContain('value="Ana"');
   });
 
-  it('guarda el mensaje, vincula el cliente y notifica', async () => {
-    const { agent, db, sent } = createTestApp();
+  it('guarda el mensaje, vincula el cliente y encola el aviso al equipo', async () => {
+    const { agent, db, sent, runJobs } = createTestApp();
     const _csrf = await csrfToken(agent);
     const res = await agent.post('/contacto').type('form').send({
       _csrf,
@@ -101,7 +110,14 @@ describe('formulario de contacto', () => {
     const message = await db.contactMessage.findFirstOrThrow({ include: { customer: true } });
     expect(message.customer.email).toBe('ana@example.com');
     expect(message.status).toBe('NEW');
-    expect(sent).toHaveLength(1);
+
+    // El aviso se encola en la misma transacción y lo envía el worker.
+    expect(await db.job.count({ where: { type: 'email.send' } })).toBe(1);
+    expect(sent).toHaveLength(0);
+    await runJobs();
+    expect(sent).toEqual([
+      expect.objectContaining({ to: 'equipo@taller.test', replyTo: 'ana@example.com' }),
+    ]);
   });
 
   it('descarta en silencio los envíos de bots (campo trampa)', async () => {

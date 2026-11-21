@@ -1,26 +1,24 @@
 import type { Env } from '../config/env.js';
+import type { Db } from '../db/client.js';
 import type { Repositories } from '../repositories/index.js';
+import type { ContentCache } from '../services/content-cache.js';
 import type { ExchangeRateService } from '../services/exchange-rate.js';
-import type { Notifier } from '../services/mailer.js';
+import type { UseCases } from '../use-cases/index.js';
+import type { Limiters } from './middleware/rate-limit.js';
 
-/** Dependencias que reciben las rutas. Se inyectan para poder sustituirlas en los tests. */
-export interface AppContext {
+/** Dependencias que recibe la app. Se inyectan para poder sustituirlas en los tests. */
+export interface AppDeps {
   env: Env;
+  db: Db;
   repos: Repositories;
-  notifier: Notifier;
+  useCases: UseCases;
+  content: ContentCache;
   exchangeRates: ExchangeRateService;
   /** Permite desactivar los límites de peticiones en los tests. */
   rateLimit: boolean;
 }
 
-/** Lanza la notificación sin bloquear la respuesta ni romperla si el correo falla. */
-export function notifyInBackground(
-  ctx: AppContext,
-  subject: string,
-  text: string,
-  replyTo?: string,
-) {
-  ctx.notifier
-    .notify({ subject, text, ...(replyTo ? { replyTo } : {}) })
-    .catch((error: unknown) => console.error('No se pudo enviar la notificación:', error));
+/** Lo que reciben las rutas: las dependencias más los limitadores ya construidos. */
+export interface AppContext extends AppDeps {
+  limiters: Limiters;
 }

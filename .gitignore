@@ -1,15 +1,29 @@
-# Node modules
+# Dependencias y builds
 node_modules/
+dist/
+public/js/
+coverage/
 
-# Environment variables
+# Variables de entorno (usa .env.example como plantilla)
 .env
+.env.*
+!.env.example
+
+# Datos locales: nunca versionar bases de datos con información de clientes
+database/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
 
 # Logs
 logs/
 *.log
 npm-debug.log*
 
-# Otros archivos que no deben subirse
+# Editor / SO
 .DS_Store
 .idea/
 .vscode/
+src/generated/
+public/css/
